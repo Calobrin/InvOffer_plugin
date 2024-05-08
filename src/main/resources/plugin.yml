@@ -1,0 +1,13 @@
+name: InvOffer
+version: '${project.version}'
+main: org.invoffer.invoffer.InvOffer
+api-version: '1.20'
+author: [Calobrin]
+description: My first plugin project to create a plugin to allow players to offer other players items.
+commands:
+  offer:
+    description: Opens inventory window for offering items to another player.
+    usage: /<command>
+    aliases: invoffer
+    permission: offer
+    permission-message: You do not have the offer permission.
