@@ -41,14 +41,20 @@ public class OfferCommand implements CommandExecutor {
                     player.sendMessage(ChatColor.RED + "Invalid target - You cannot use offer on yourself.");
                     player.sendMessage(ChatColor.YELLOW + "Usage: /invoffer <player>.");
                 } else { //
+                    // Checks if you already have an active offer to player. (should.. at least..)
                     if (dataManager.hasActiveOffer(player.getUniqueId(), target.getUniqueId())) {
                         player.sendMessage(ChatColor.RED + "You already have an active offer.");
                         return true;
+                    }else {
+                        player.sendMessage("The else was called for hasActiveOffer.");
                     }
 
                     Inventory offerMenu = Bukkit.createInventory(player, 9, ChatColor.GOLD + "InvOffer GUI");
                     player.openInventory(offerMenu);
+                    dataManager.saveActiveOffers(player.getUniqueId(), target.getUniqueId());
+                    System.out.println("It SHOULD have saved the offer. Did it?");
                     // TODO: Incorporate the saveActiveOffers method from DataManager to keep track of active offers.
+
                 }
             } else { //In the off chance anything else is incorrect...
                 player.sendMessage(ChatColor.RED + "Too many arguments.");
