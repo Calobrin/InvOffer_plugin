@@ -7,15 +7,29 @@ import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
+import org.invoffer.invoffer.InvOffer;
 import org.invoffer.invoffer.data.DataManager;
+import org.invoffer.invoffer.listeners.OfferInventoryCloseListener;
+
+import java.util.UUID;
 
 
 public class OfferCommand implements CommandExecutor {
 
     private final DataManager dataManager;
+    private final OfferInventoryCloseListener offerInventoryCloseListener;
+    private UUID targetUUID;
 
     public OfferCommand(DataManager dataManager) {
         this.dataManager = dataManager;
+        this.offerInventoryCloseListener = new OfferInventoryCloseListener(dataManager, this);
+    }
+    public OfferInventoryCloseListener getOfferInventoryCloseListener() {
+        return offerInventoryCloseListener;
+    }
+
+    public UUID getTargetUUID() {
+        return targetUUID;
     }
     // /offer <playerName> :  Sends an item(s) offer to a player online.
     @Override
@@ -40,20 +54,28 @@ public class OfferCommand implements CommandExecutor {
                 } else if(target.equals(player)){ // Checks if you are using the command on yourself (Incorrect)
                     player.sendMessage(ChatColor.RED + "Invalid target - You cannot use offer on yourself.");
                     player.sendMessage(ChatColor.YELLOW + "Usage: /invoffer <player>.");
-                } else { //
+                } else {
+                    this.targetUUID = target.getUniqueId();
                     // Checks if you already have an active offer to player. (should.. at least..)
                     if (dataManager.hasActiveOffer(player.getUniqueId(), target.getUniqueId())) {
                         player.sendMessage(ChatColor.RED + "You already have an active offer.");
                         return true;
                     }else {
-                        player.sendMessage("The else was called for hasActiveOffer.");
+                        player.sendMessage("All set! You didn't have any previous offers. Moving on...");
                     }
-
+                    // Create the offer inventory window
                     Inventory offerMenu = Bukkit.createInventory(player, 9, ChatColor.GOLD + "InvOffer GUI");
+                    Bukkit.getPluginManager().registerEvents(offerInventoryCloseListener, InvOffer.getInstance());
                     player.openInventory(offerMenu);
-                    dataManager.saveActiveOffers(player.getUniqueId(), target.getUniqueId());
-                    System.out.println("It SHOULD have saved the offer. Did it?");
-                    // TODO: Incorporate the saveActiveOffers method from DataManager to keep track of active offers.
+
+
+                    if (offerMenu.firstEmpty() == -1) {
+                        player.sendMessage((ChatColor.RED + "The InvOffer GUI was empty, the offer has not been sent."));
+                        return true; // Return without storing the pending offer.
+                    }
+                    if (dataManager.hasActiveOffer(player.getUniqueId(), target.getUniqueId())) {
+                        player.sendMessage("Offer sent successfully.");
+                    }
 
                 }
             } else { //In the off chance anything else is incorrect...
