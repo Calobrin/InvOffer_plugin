@@ -20,6 +20,7 @@ public class OfferCommand implements CommandExecutor {
     private final OfferInventoryCloseListener offerInventoryCloseListener;
     private UUID targetUUID;
 
+
     public OfferCommand(DataManager dataManager) {
         this.dataManager = dataManager;
         this.offerInventoryCloseListener = new OfferInventoryCloseListener(dataManager, this);
@@ -29,6 +30,8 @@ public class OfferCommand implements CommandExecutor {
     }
 
     public UUID getTargetUUID() {
+        System.out.println("The getTargetUUID method was called.");
+        System.out.println("TargetUUID: "  + targetUUID);
         return targetUUID;
     }
     // /offer <playerName> :  Sends an item(s) offer to a player online.
@@ -56,27 +59,16 @@ public class OfferCommand implements CommandExecutor {
                     player.sendMessage(ChatColor.YELLOW + "Usage: /invoffer <player>.");
                 } else {
                     this.targetUUID = target.getUniqueId();
+                    System.out.println("Target UUID set: " + this.targetUUID);
                     // Checks if you already have an active offer to player. (should.. at least..)
                     if (dataManager.hasActiveOffer(player.getUniqueId(), target.getUniqueId())) {
                         player.sendMessage(ChatColor.RED + "You already have an active offer.");
                         return true;
-                    }else {
-                        player.sendMessage("All set! You didn't have any previous offers. Moving on...");
                     }
                     // Create the offer inventory window
                     Inventory offerMenu = Bukkit.createInventory(player, 9, ChatColor.GOLD + "InvOffer GUI");
-                    Bukkit.getPluginManager().registerEvents(offerInventoryCloseListener, InvOffer.getInstance());
+                    //Bukkit.getPluginManager().registerEvents(offerInventoryCloseListener, InvOffer.getInstance());
                     player.openInventory(offerMenu);
-
-
-                    if (offerMenu.firstEmpty() == -1) {
-                        player.sendMessage((ChatColor.RED + "The InvOffer GUI was empty, the offer has not been sent."));
-                        return true; // Return without storing the pending offer.
-                    }
-                    if (dataManager.hasActiveOffer(player.getUniqueId(), target.getUniqueId())) {
-                        player.sendMessage("Offer sent successfully.");
-                    }
-
                 }
             } else { //In the off chance anything else is incorrect...
                 player.sendMessage(ChatColor.RED + "Too many arguments.");

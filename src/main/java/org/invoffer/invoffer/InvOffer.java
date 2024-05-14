@@ -6,12 +6,14 @@ import org.invoffer.invoffer.data.DataManager;
 import org.invoffer.invoffer.listeners.OfferInventoryCloseListener;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.UUID;
 
 public final class InvOffer extends JavaPlugin {
 
     private static InvOffer instance;
+    private static OfferCommand offerCommand;
 
     @Override
     public void onEnable() {
@@ -25,12 +27,16 @@ public final class InvOffer extends JavaPlugin {
         }
         // Specify the file path for the new active offers data
         File activeOffersFile = new File(dataFolder, "active_offers.yml");
-        DataManager dataManager = new DataManager(activeOffersFile);
+
+        DataManager dataManager = new DataManager(dataFolder);
+
+        // Specify the file path for the new pending offers data
+        File pendingOffersFile = new File(dataFolder, "pending_offers.yml");
 
         HashMap<UUID, UUID> activeOffers = dataManager.loadActiveOffers();
         // Register the OfferCommand
-        OfferCommand offerCommand = new OfferCommand(dataManager);
-        getCommand("invOffer").setExecutor(new OfferCommand(dataManager));
+        offerCommand = new OfferCommand(dataManager);
+        getCommand("invOffer").setExecutor(offerCommand);
         // Register the OfferInventoryCloseListener
         OfferInventoryCloseListener offerInventoryCloseListener = offerCommand.getOfferInventoryCloseListener();
         getServer().getPluginManager().registerEvents(offerInventoryCloseListener, this);
@@ -46,5 +52,9 @@ public final class InvOffer extends JavaPlugin {
     }
     public static InvOffer getInstance(){
         return instance;
+    }
+
+    public static OfferCommand getOfferCommand() {
+        return offerCommand;
     }
 }
