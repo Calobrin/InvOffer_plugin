@@ -5,9 +5,13 @@ api-version: '1.20'
 author: [Calobrin]
 description: My first plugin project to create a plugin to allow players to offer other players items.
 commands:
-  offer:
+  invoffer:
     description: Opens inventory window for offering items to another player.
-    usage: /<command>
-    aliases: invoffer
-    permission: offer
+    usage: /offer <player>
+    aliases: offer
+    permission: invoffer
     permission-message: You do not have the offer permission.
+  acceptoffer:
+    description: Accept an offer from another player, opening a window containing the items offered to you.
+    usage: /acceptoffer <player>
+    aliases: invofferaccept

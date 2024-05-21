@@ -1,19 +1,19 @@
 package org.invoffer.invoffer;
 
 import org.bukkit.plugin.java.JavaPlugin;
+import org.invoffer.invoffer.commands.AcceptOfferCommand;
 import org.invoffer.invoffer.commands.OfferCommand;
 import org.invoffer.invoffer.data.DataManager;
+import org.invoffer.invoffer.listeners.OfferInventoryClickListener;
 import org.invoffer.invoffer.listeners.OfferInventoryCloseListener;
 
 import java.io.File;
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.UUID;
 
 public final class InvOffer extends JavaPlugin {
 
     private static InvOffer instance;
     private static OfferCommand offerCommand;
+    private static AcceptOfferCommand acceptOfferCommand;
 
     @Override
     public void onEnable() {
@@ -33,13 +33,16 @@ public final class InvOffer extends JavaPlugin {
         // Specify the file path for the new pending offers data
         File pendingOffersFile = new File(dataFolder, "pending_offers.yml");
 
-        HashMap<UUID, UUID> activeOffers = dataManager.loadActiveOffers();
         // Register the OfferCommand
         offerCommand = new OfferCommand(dataManager);
+        acceptOfferCommand = new AcceptOfferCommand(dataManager);
         getCommand("invOffer").setExecutor(offerCommand);
+        getCommand("acceptOffer").setExecutor(acceptOfferCommand);
         // Register the OfferInventoryCloseListener
         OfferInventoryCloseListener offerInventoryCloseListener = offerCommand.getOfferInventoryCloseListener();
         getServer().getPluginManager().registerEvents(offerInventoryCloseListener, this);
+        OfferInventoryClickListener offerInventoryClickListener = new OfferInventoryClickListener();
+        getServer().getPluginManager().registerEvents(offerInventoryClickListener, this);
 
     }
 

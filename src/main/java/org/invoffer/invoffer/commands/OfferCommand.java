@@ -7,7 +7,6 @@ import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
-import org.invoffer.invoffer.InvOffer;
 import org.invoffer.invoffer.data.DataManager;
 import org.invoffer.invoffer.listeners.OfferInventoryCloseListener;
 
@@ -30,8 +29,6 @@ public class OfferCommand implements CommandExecutor {
     }
 
     public UUID getTargetUUID() {
-        System.out.println("The getTargetUUID method was called.");
-        System.out.println("TargetUUID: "  + targetUUID);
         return targetUUID;
     }
     // /offer <playerName> :  Sends an item(s) offer to a player online.
@@ -59,15 +56,15 @@ public class OfferCommand implements CommandExecutor {
                     player.sendMessage(ChatColor.YELLOW + "Usage: /invoffer <player>.");
                 } else {
                     this.targetUUID = target.getUniqueId();
-                    System.out.println("Target UUID set: " + this.targetUUID);
-                    // Checks if you already have an active offer to player. (should.. at least..)
+                    //System.out.println("Target UUID set: " + this.targetUUID);
+                    // Checks if you already have an active offer to player.
                     if (dataManager.hasActiveOffer(player.getUniqueId(), target.getUniqueId())) {
-                        player.sendMessage(ChatColor.RED + "You already have an active offer.");
+                        player.sendMessage(ChatColor.RED + "You already have an active offer to " + ChatColor.WHITE + target.getName() + ChatColor.RED+ "." );
+                        player.sendMessage(ChatColor.YELLOW + "You may only have one active offer for one player each.");
                         return true;
                     }
                     // Create the offer inventory window
-                    Inventory offerMenu = Bukkit.createInventory(player, 9, ChatColor.GOLD + "InvOffer GUI");
-                    //Bukkit.getPluginManager().registerEvents(offerInventoryCloseListener, InvOffer.getInstance());
+                    Inventory offerMenu = Bukkit.createInventory(player, 9, ChatColor.GOLD + "InvOffer GUI: Send");
                     player.openInventory(offerMenu);
                 }
             } else { //In the off chance anything else is incorrect...
@@ -76,7 +73,7 @@ public class OfferCommand implements CommandExecutor {
             }
         }
         else {
-            System.out.println("Command only usable by players");
+            sender.sendMessage(ChatColor.RED + "Command only usable by players");
         }
 
         return true;

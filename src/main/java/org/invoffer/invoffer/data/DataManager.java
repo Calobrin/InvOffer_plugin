@@ -15,26 +15,18 @@ import java.util.*;
 
 public class DataManager {
 
-    private static final String ACTIVE_OFFERS_FILE_NAME = "active_offers.yml";
     private static final String PENDING_OFFERS_FILE_NAME = "pending_offers.yml";
     private static final String PENDING_OFFERS_KEY = "pending_offers";
 
-    private final File activeOffersFile;
-    private final File pendingOffersFile;
-    private final FileConfiguration activeOffersConfig;
-    private final FileConfiguration pendingOffersConfig;
-    private final HashMap<UUID, UUID> activeOffers;
 
+    private final File pendingOffersFile;
+    private final FileConfiguration pendingOffersConfig;
 
     public DataManager(File dataFolder) {
-        this.activeOffers = new HashMap<>();
-        this.activeOffersFile = new File(dataFolder, ACTIVE_OFFERS_FILE_NAME);
         this.pendingOffersFile = new File(dataFolder, PENDING_OFFERS_FILE_NAME);
 
-        createFile(activeOffersFile);
         createFile(pendingOffersFile);
 
-        this.activeOffersConfig = YamlConfiguration.loadConfiguration(activeOffersFile);
         this.pendingOffersConfig = YamlConfiguration.loadConfiguration(pendingOffersFile);
     }
     private void createFile(File file) {
@@ -49,47 +41,7 @@ public class DataManager {
         }
     }
 
-    // Method for checking if an active offer exists (simply by checking who sent the offer, and the target)
     public boolean hasActiveOffer(UUID senderUUID, UUID targetUUID) {
-        if (activeOffers.containsKey(senderUUID)) {
-            UUID storedTargetUUID = activeOffers.get(senderUUID);
-            return !senderUUID.equals(storedTargetUUID) && targetUUID.equals(storedTargetUUID);
-        }
-        return false;
-    }
-    // Method for saving the active offer (simply for who sent the offer, and the target)
-    public void saveActiveOffers(UUID senderUUID, UUID targetUUID) {
-        // Clear existing data in the configuration
-        activeOffersConfig.set("activeOffers." + senderUUID.toString(), targetUUID.toString());
-
-        // Save the configuration to the file
-        try {
-            activeOffersConfig.save(activeOffersFile);
-        } catch (IOException e) {
-            //Using a basic system out print statement if the save failed. May want something more robust later.
-            System.out.println("Failed to save active offers: " + e.getMessage());
-        }
-    }
-    //Method to load the active offers data from file.
-    public HashMap<UUID, UUID> loadActiveOffers() {
-        HashMap<UUID, UUID> activeOffers = new HashMap<>();
-
-        // Read data from the configuration
-        for (String senderUUIDString : activeOffersConfig.getKeys(false)) {
-            String targetUUIDString = activeOffersConfig.getString(senderUUIDString);
-            if (targetUUIDString != null) {
-                UUID senderUUID = UUID.fromString(senderUUIDString);
-                UUID targetUUID = UUID.fromString(targetUUIDString);
-                activeOffers.put(senderUUID, targetUUID);
-            } else {
-                //Handle cases where target is null.
-                System.out.println("There is some error in reading the file. Temporary error message");
-            }
-        }
-
-        return activeOffers;
-    }
-    private boolean hasPendingOffer(UUID senderUUID, UUID targetUUID) {
         List<Map<String, Object>> pendingOffersList = loadPendingOffers();
         if (pendingOffersList != null) {
             for (Map<String, Object> offerData : pendingOffersList) {
@@ -104,7 +56,7 @@ public class DataManager {
     }
 
     public void savePendingOffer(UUID senderUUID, UUID targetUUID, Inventory offerInventory) {
-        if (hasPendingOffer(senderUUID, targetUUID)) {
+        if (hasActiveOffer(senderUUID, targetUUID)) {
             // If a pending offer already exists, return without adding and saving new entry to file.
             return;
         }
@@ -160,6 +112,70 @@ public class DataManager {
             if (senderPlayer != null && senderPlayer.isOnline()) {
                 senderPlayer.sendMessage(ChatColor.RED + "Your target player is offline, you cannot send offers to offline players.");
             }
+        }
+    }
+
+    public void deletePendingOffer(UUID senderUUID, UUID targetUUID) {
+        List<Map<String, Object>> pendingOffersList = loadPendingOffers();
+        if (pendingOffersList != null) {
+            pendingOffersList.removeIf(offerData -> {
+                String existingSenderUUID = (String) offerData.get("sender_uuid");
+                String existingTargetUUID = (String) offerData.get("target_uuid");
+                return existingSenderUUID.equals(senderUUID.toString()) && existingTargetUUID.equals(targetUUID.toString());
+            });
+            pendingOffersConfig.set(PENDING_OFFERS_KEY, pendingOffersList);
+            try {
+                pendingOffersConfig.save(pendingOffersFile);
+            } catch (IOException e) {
+                e.printStackTrace();
+                System.out.println("Failed to remove pending offer: " + e.getMessage());
+            }
+        }
+    }
+
+    public void acceptOffer(UUID playerUUID, UUID senderUUID) {
+        // Retrieve the pending offer data associated with the pair of UUID's
+        List<Map<String, Object>> pendingOffersList = loadPendingOffers();
+
+        // Checks if there are any pending offers.
+        if (pendingOffersList == null) {
+            System.out.println("The pendingOffersList was null (Inside AcceptOfferCommand)");
+            return;
+        }
+
+        Map<String, Object> pendingOfferData = null;
+        for (Map<String, Object> offerData : pendingOffersList) {
+            UUID offerSenderUUID = UUID.fromString((String) offerData.get("sender_uuid"));
+            UUID offerTargetUUID = UUID.fromString((String) offerData.get("target_uuid"));
+            if (offerSenderUUID.equals(senderUUID) && offerTargetUUID.equals(playerUUID)) {
+                pendingOfferData = offerData;
+                break;
+            }
+        }
+        if (pendingOfferData == null) {
+            System.out.println("The pendingOfferData was null (Inside AcceptOfferCommand");
+            return;
+        }
+
+        // Open an inventory window with offer items from pending offer
+        Player player = Bukkit.getPlayer(playerUUID);
+        if (player != null) {
+            List<Map<String, Object>> offerInventoryContents = (List<Map<String, Object>>) pendingOfferData.get("offer_inventory");
+            if (offerInventoryContents != null) {
+                Inventory inventory = Bukkit.createInventory(player, 9, ChatColor.GOLD + "InvOffer GUI: Accept");
+
+                //Fill the inventory with the contents from the offerInventoryContents.
+                for (Map<String, Object> itemData : offerInventoryContents) {
+                    ItemStack item = ItemStack.deserialize(itemData);
+                    inventory.addItem(item);
+                }
+                //Open the inventory for the player
+                player.openInventory(inventory);
+            } else {
+                System.out.println("Offer Inventory contents are null or empty");
+            }
+        } else {
+            System.out.print("Player is not found");
         }
     }
 

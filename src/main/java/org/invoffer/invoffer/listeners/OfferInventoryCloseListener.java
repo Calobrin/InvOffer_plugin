@@ -1,7 +1,6 @@
 package org.invoffer.invoffer.listeners;
 
 import org.bukkit.ChatColor;
-import org.bukkit.entity.Item;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryCloseEvent;
@@ -35,12 +34,12 @@ public class OfferInventoryCloseListener implements Listener {
     @EventHandler
     public void onInventoryClose(InventoryCloseEvent event) {
             // Check if the inventory closed was the Offer Menu
-            if (event.getView().getTitle().equals(ChatColor.GOLD + "InvOffer GUI")) {
+            if (event.getView().getTitle().equals(ChatColor.GOLD + "InvOffer GUI: Send")) {
                 // Process the pending offer
                 UUID senderUUID = event.getPlayer().getUniqueId();
                 UUID targetUUID = offerCommand.getTargetUUID();
                 Inventory offerInventory = event.getInventory();
-                System.out.println("OfferInventoryCloseListener: TargetUUID: " + targetUUID);
+                //System.out.println("OfferInventoryCloseListener: TargetUUID: " + targetUUID);
                 if (targetUUID != null) {
                     if (isInventoryEmpty(offerInventory)) {
                         //If inventory is empty, do NOT save the offer(s)
@@ -50,12 +49,14 @@ public class OfferInventoryCloseListener implements Listener {
                     dataManager.processPendingOffer(senderUUID, targetUUID, offerInventory);
                     // After processing the offer, it saves the offer (conditions for correct offer sending done by process method)
                     dataManager.savePendingOffer(senderUUID, targetUUID, offerInventory);
-                    dataManager.saveActiveOffers(senderUUID, targetUUID);
                 } else {
                     //Log a warning if target UUID is null
                     System.out.println("Warning: TargetUUID is null, cannot save offer");
                 }
             }
+        if (event.getView().getTitle().equals(ChatColor.GOLD + "InvOffer GUI: Accept")) {
+            // Things and stuff
+        }
         }
     }
 
