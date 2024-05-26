@@ -22,7 +22,7 @@ public class OfferCommand implements CommandExecutor {
 
     public OfferCommand(DataManager dataManager) {
         this.dataManager = dataManager;
-        this.offerInventoryCloseListener = new OfferInventoryCloseListener(dataManager, this);
+        this.offerInventoryCloseListener = new OfferInventoryCloseListener(dataManager,this);
     }
     public OfferInventoryCloseListener getOfferInventoryCloseListener() {
         return offerInventoryCloseListener;
@@ -56,7 +56,6 @@ public class OfferCommand implements CommandExecutor {
                     player.sendMessage(ChatColor.YELLOW + "Usage: /invoffer <player>.");
                 } else {
                     this.targetUUID = target.getUniqueId();
-                    //System.out.println("Target UUID set: " + this.targetUUID);
                     // Checks if you already have an active offer to player.
                     if (dataManager.hasActiveOffer(player.getUniqueId(), target.getUniqueId())) {
                         player.sendMessage(ChatColor.RED + "You already have an active offer to " + ChatColor.WHITE + target.getName() + ChatColor.RED+ "." );

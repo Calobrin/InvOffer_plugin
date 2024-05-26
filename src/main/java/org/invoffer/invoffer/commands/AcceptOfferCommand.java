@@ -6,17 +6,27 @@ import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.invoffer.invoffer.data.DataManager;
+import org.invoffer.invoffer.listeners.OfferAcceptInventoryCloseListener;
 
 import java.util.UUID;
 
 public class AcceptOfferCommand implements CommandExecutor {
 
     private final DataManager dataManager;
+    private final OfferAcceptInventoryCloseListener offerAcceptInventoryCloseListener;
+    private UUID senderUUID;
 
     public AcceptOfferCommand(DataManager dataManager) {
         this.dataManager = dataManager;
+        this.offerAcceptInventoryCloseListener = new OfferAcceptInventoryCloseListener(dataManager, this);
+    }
+    public OfferAcceptInventoryCloseListener getOfferAcceptInventoryCloseListener() {
+        return offerAcceptInventoryCloseListener;
     }
 
+    public UUID getSenderUUID(){
+        return senderUUID;
+    }
     /*
     For the sake of my own mentality:
     PLAYER is the person RUNNING this command.
@@ -37,12 +47,11 @@ public class AcceptOfferCommand implements CommandExecutor {
             return true;
         }
         String senderName = args[0];
-
-        Player targetPlayer = player.getServer().getPlayer(senderName);
-        UUID senderUUID = null;
-            if (targetPlayer != null) {
-                senderUUID = targetPlayer.getUniqueId();
-            }
+        UUID senderUUID = dataManager.getPlayerUUIDFromStorage(senderName);
+        if (senderUUID == null) {
+            player.sendMessage(ChatColor.RED + "Player '" + senderName + "' not found.");
+            return true;
+        }
 
         UUID playerUUID = player.getUniqueId();
 
@@ -55,6 +64,9 @@ public class AcceptOfferCommand implements CommandExecutor {
             player.sendMessage(ChatColor.RED + "You do not have an active offer from " + ChatColor.WHITE + senderName + ChatColor.RED + ".");
             return true;
         }
+
+        this.senderUUID = senderUUID;
+
         // Proceed with accepting the offer
         dataManager.acceptOffer(player.getUniqueId(), senderUUID);
         return true;
