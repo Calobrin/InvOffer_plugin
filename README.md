@@ -14,3 +14,6 @@ They could then run something like the following:  (this idea is far down the pa
 target player uses /offerAccept <target>  where the target is the player who sent them the offer. (This may require not allowing more than one offer from a specific player at a time...)
 The inventory window opens showing the items added by the original sender, where the player can then take the items from that screen, emptying it and closing it which then deletes the offer.
 Additionally, if not all items are collected, they could either run the command again (so long as the offer still exists, will likely include a way for the offer sender to cancel the offer) to claim the remaining items.
+
+Post Commit:
+This main branch will not be used until the plugin is in it's initial release version. Please see all other update on developments under the branches "0.1.X" as I continue to work on and improve this plugin.
