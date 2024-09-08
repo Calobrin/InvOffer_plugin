@@ -1,45 +1,23 @@
-5/26/2024
+9/7/2024
 
-Oh boy what a session. This was technically a 2-day development session.
-I ran into some troubles when running this, for example I had issues getting the SenderUUID for when accepting the offer.
+As mentioned in the commit message (I REALLY ought to put that more into the Readme. Also this readme is still auto-defaulting to an earlier branch and I need to figure out how to turn that off)
+This is my first session back working with the plugin since May.
+I took a hiatus from this as I had a trip planned, and I was procrastinating getting back mostly out of fear that I have no idea what I am doing and getting started is the hardest part for me, Anyways...
 
-Methods had been created to UpdatePendingOffers or to delete/resolvePendingOffers,
-either of which would be called on the inventoryCloseListener depending on if the window was empty or not.
-If the window wasn't empty, update the data with only the remaining items, and delete the ones the player took.
-This would allow the player to run the command again to get what remained of the offer.
+I feel I must have mentioned this at some point but MUCH of this development is with the aid of ChatGPT as a tool for examples, documentation, and bouncing ideas around. As none of my friends are into coding I can't really ask them for ideas so I am on my own.
+I had concerns for a bit on what happens if multiple users are using the invoffer commands at the same time. For example the UUID was being set via a method in acceptOfferCommand, so if Player A sends to B, and B accepts the offer. While that window is open player C could send to D, and therefore they set the UUID of player A for B's offer into player C. It could be a nightmare so I had to consider ways to work around it.
 
-Then if the window was empty, it would simply delete the data entry entirely.
+ChatGPT mentioned multiple concurrent access to the file for writing data could pose problems of data going where it shouldn't, and so I decided to try to use a database like SQLite (I checked my servers plugin folders to see how some of my favorite plugins handle data, and saw our Minepacks plugin using an SQLite db file)
+So I spent like 4+ hours GUTTING the majority of the DataManager class methods and replacing all of the YML file stuff to using SQLite DB stuff, such as initializing, opening closing and all the CRUD operations and inserting them into our previously made methods for handling offers.
 
-Again, the issue arose when trying to update, I had trouble sending the UUID saved in the AcceptOffer command to the closelistener.
-The issue was I was using the method for the sendoffer command, which means I was setting the sender of the offer to be the same as the person who GOT the offer, so when it updated it would either write the data to have two of the same UUID's,
-or it would not be able to find the offer of Player A and Player B UUID's.
+It looks good so far, after some testing I do have the .db file being created and placed now where it NEEDS to go. But there is a massive problem.
 
-I started back up on the 26'th after a few day break trying to implement a method within the AcceptOffer Command to save and retrieve the senderUUID (or target of accept offer command)
-And then when the updateOffer method was called, it had what it needed to.
-This also posed problems because I now had to pass AcceptOfferCommand to the eventlistener, which means I also had to include AcceptOfferCommand into the OfferCommand.
-It became a giant mess, so I decided to create a separate event listener SPECIFICALLY for the accept window, I used to have it be an if check for the title name, but this made it easier.
+Serialization of Inventory Data...
 
-I modified some things in the data manager to include more ways to retrieve the UUID, some of which may be removed later on who knows for now.
-Eventually I got it working, but I ended up making changes to how the data is stored and updating.
-The reason was, when the offer resolved, and I went to accept the offer again, instead of saying no active offer it would simply say the target was not found.
-This is because of the if statement for if the targetUUID is null, and in this case it is because the data was deleted.
-There may be a better way around this, but instead of deleting the offer entirely, we simply erase the inventory contents, while keeping the UUID pairs.
-This way we change how the hasActiveOffers checks, which looks for an empty inventory, and it is able to update more cleanly.
-This also allows us to inform the user that they already accepted the offer from that player and just makes the player experience a bit better,
-because despite having it working. I wasn't happy with it.
+Working with the YML it was fairly simple IIRC, but moving onto SQLite there is a whole bunch of issues and complexities, but I genuinely believe it is worth it.
+As I was wrapping up my session because honestly I am exhausted after working on this for so long (Especially for my first day back working on this) the AI mentioned alternatives to the method we are going about for serialization and then mentioned a libray called ItemSerialization for Minecraft and I am just like "But why didn't you say so sooner!!"
 
-I see some glaring issues in the future to be considered.
+I intend to test out this newly discovered library next time I have a go at developing. While I am displeased to not have this development branch in a WORKING state, the groundwork set here to setting up the DB is MASSIVE in my eyes.
+Yes I wanted to move onto creating the cancelOfferCommand, but this I think is important for considering the future of the plugin, having a DB like this makes the plugin more scaleable and honestly the YML file I wasn't utterly pleased with.
 
-Because the offer and accept commands store the UUID of the target, it means each time the command is run it will reupdate that variable.
-So what happens if someone has an active offer open, and while they are doing that a different player accepts a different offer.
-
-If Player B accepts an offer from A, and has the window open,
-and player C accepts an offer from Player D, when player B goes to close their window without taking everything, it will update the offer to be from Player D, despite it not being from that player
-
-Something will need to be put in place that will change how it all works. Either make it so only one acceptOffer window can be running, in which case it would prevent all other players from accepting offers... But I imagine that to be used to exploit and block access to this offer from others..
-
-So obviously I have work to do. But for now the basic functions of this plugin are working!
-
-Next I need to set up commands for canceling offers and reclaiming their items, in the off chance the player they sent the offer to NEVER accepts it...
-
-But one step at a time!!!
+For now I rest, hoping to get really back into developing this plugin and deploying it onto my server.
