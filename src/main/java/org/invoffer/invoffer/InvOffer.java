@@ -8,34 +8,26 @@ import org.invoffer.invoffer.listeners.OfferAcceptInventoryCloseListener;
 import org.invoffer.invoffer.listeners.OfferInventoryClickListener;
 import org.invoffer.invoffer.listeners.OfferInventoryCloseListener;
 
-import java.io.File;
-
 public final class InvOffer extends JavaPlugin {
 
     private static InvOffer instance;
     private static OfferCommand offerCommand;
-    private static AcceptOfferCommand acceptOfferCommand;
+    private DataManager dataManager;
 
     @Override
     public void onEnable() {
         // Plugin startup logic
         instance = this;
         System.out.println("InvOffer has started! This plugin is still in development...");
-        // Create a directory for data (active offers) if it doesn't exist.
-        File dataFolder = new File(getDataFolder(), "data");
-        if (!dataFolder.exists()) {
-            dataFolder.mkdirs(); // Creates the directory (or any other necessary directories to do it)
-        }
-        DataManager dataManager = new DataManager(dataFolder);
 
-        // Specify the file path for the new pending offers data
-        File pendingOffersFile = new File(dataFolder, "pending_offers.yml");
+        dataManager = new DataManager();
 
         // Register the OfferCommand
         offerCommand = new OfferCommand(dataManager);
-        acceptOfferCommand = new AcceptOfferCommand(dataManager);
+        AcceptOfferCommand acceptOfferCommand = new AcceptOfferCommand(dataManager);
         getCommand("invOffer").setExecutor(offerCommand);
         getCommand("acceptOffer").setExecutor(acceptOfferCommand);
+
         // Register the OfferInventoryCloseListener
         OfferInventoryCloseListener offerInventoryCloseListener = offerCommand.getOfferInventoryCloseListener();
         getServer().getPluginManager().registerEvents(offerInventoryCloseListener, this);
@@ -52,6 +44,7 @@ public final class InvOffer extends JavaPlugin {
     @Override
     public void onDisable() {
         // Plugin shutdown logic
+        dataManager.closeConnection();
         instance = null;
         System.out.println("InvOffer has shut down.");
 

@@ -37,7 +37,7 @@ public class OfferCommand implements CommandExecutor {
         // Checks if sender is player or not - only players may use this command.
         if (sender instanceof Player player) {
             // Check if the command has the correct number of arguments
-            // Checks if no argument is used (Incorrect, it needs a target play)
+            // Checks if no argument is used (Incorrect, it needs a target player)
             if (args.length == 0) {
                 player.sendMessage(ChatColor.RED + "Missing target. ");
                 player.sendMessage(ChatColor.YELLOW + "Usage: /invoffer <player>");
@@ -48,7 +48,7 @@ public class OfferCommand implements CommandExecutor {
                 String targetPlayerName = args[0];
                 // Creates a variable to store target player name from list of online players.
                 Player target = Bukkit.getServer().getPlayerExact(targetPlayerName);
-                if(target == null){ // Checks if the target is offline, or the argument is empty. (Incorrect_
+                if(target == null){ // Checks if the target is offline, or the argument is empty. (Incorrect)
                     player.sendMessage(ChatColor.RED + "Invalid target - You cannot target offline players.");
                     player.sendMessage(ChatColor.YELLOW + "Usage: /invoffer <player>.");
                 } else if(target.equals(player)){ // Checks if you are using the command on yourself (Incorrect)

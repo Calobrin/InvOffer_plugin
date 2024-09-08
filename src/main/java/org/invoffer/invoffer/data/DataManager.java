@@ -1,33 +1,76 @@
 package org.invoffer.invoffer.data;
 
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
-import org.bukkit.configuration.file.FileConfiguration;
-import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
+import java.io.*;
+import java.lang.reflect.Type;
 
-import java.io.File;
-import java.io.IOException;
+import java.sql.*;
 import java.util.*;
+import java.util.logging.Level;
 
 public class DataManager {
 
-    private static final String PENDING_OFFERS_FILE_NAME = "pending_offers.yml";
-    private static final String PENDING_OFFERS_KEY = "pending_offers";
-    private final File pendingOffersFile;
-    private final FileConfiguration pendingOffersConfig;
+    private static final String DATABASE_URL = "jdbc:sqlite:plugins/InvOffer/invoffer.db";
+    private Gson gson = new Gson();
+    private Connection connection;
 
-    public DataManager(File dataFolder) {
-        this.pendingOffersFile = new File(dataFolder, PENDING_OFFERS_FILE_NAME);
 
-        createFile(pendingOffersFile);
-
-        this.pendingOffersConfig = YamlConfiguration.loadConfiguration(pendingOffersFile);
+    public DataManager() {
+        try {
+            connect();
+            initializeDatabase();
+        } catch (SQLException e) {
+            Bukkit.getLogger().log(Level.SEVERE, "Failed to initialize database connection", e);
+        }
     }
+
+    public void connect() throws SQLException {
+        File pluginFolder = new File("plugins/InvOffer");
+        if (!pluginFolder.exists()) {
+            pluginFolder.mkdirs(); // Create the directory if it doesn't exist
+        }
+
+        if (connection == null || connection.isClosed()) {
+            try {
+                Class.forName("org.sqlite.JDBC");
+                connection = DriverManager.getConnection(DATABASE_URL);
+                Bukkit.getLogger().info("Database connection established.");
+            } catch (ClassNotFoundException e) {
+                Bukkit.getLogger().log(Level.SEVERE, "SQLite JDBC driver not found!", e);
+            }
+        }
+    }
+
+
+    private void initializeDatabase() throws SQLException {
+        Statement statement = connection.createStatement();
+        String createTableSQL = "CREATE TABLE IF NOT EXISTS offers (" +
+                "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                "sender_uuid TEXT NOT NULL, " +
+                "target_uuid TEXT NOT NULL, " +
+                "offer_inventory TEXT NOT NULL)";
+        statement.execute(createTableSQL);
+        statement.close();
+    }
+
+    public void closeConnection() {
+        try {
+            if (connection != null && !connection.isClosed()) {
+                connection.close();
+            }
+        } catch (SQLException e) {
+            Bukkit.getLogger().log(Level.SEVERE, "Failed to close database connection", e);
+        }
+    }
+
     private boolean isInventoryEmpty(Inventory inventory) {
         for (ItemStack itemStack : inventory.getContents()) {
             if (itemStack != null && !itemStack.getType().equals(Material.AIR)) {
@@ -36,59 +79,18 @@ public class DataManager {
         }
         return true;
     }
-    private void removePendingOffer(UUID senderUUID, UUID targetUUID) {
-        // Get the pending offer list from the YAML file
-        List<Map<String, Object>> pendingOffersList = (List<Map<String, Object>>) pendingOffersConfig.getList(PENDING_OFFERS_KEY);
-        if (pendingOffersList != null) {
-            // Remove any existing offer with the same sender and target UUIDs
-            pendingOffersList.removeIf(offerData -> {
-                String existingSenderUUID = (String) offerData.get("sender_uuid");
-                String existingTargetUUID = (String) offerData.get("target_uuid");
-                return existingSenderUUID.equals(senderUUID.toString()) && existingTargetUUID.equals(targetUUID.toString());
-            });
-        }
-    }
-    private void createFile(File file) {
-        if (!file.exists()) {
-            try {
-                if (!file.createNewFile()) {
-                    System.err.println("Failed to create the file: " + file.getPath());
-                }
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-    }
 
     public boolean hasActiveOffer(UUID senderUUID, UUID targetUUID) {
-        List<Map<String, Object>> pendingOffersList = loadPendingOffers();
-        if (pendingOffersList != null) {
-            for (Map<String, Object> offerData : pendingOffersList) {
-                String existingSenderUUID = (String) offerData.get("sender_uuid");
-                String existingTargetUUID = (String) offerData.get("target_uuid");
-                if (existingSenderUUID != null && existingSenderUUID.equals(senderUUID.toString()) && existingTargetUUID.equals(targetUUID.toString())) {
-                    // Check if the offer inventory exists and is not empty
-                    List<Map<String, Object>> offerInventory = (List<Map<String, Object>>) offerData.get("offer_inventory");
-                    return offerInventory != null && !offerInventory.isEmpty();
-                }
-            }
+        String query = "SELECT COUNT(*) FROM offers WHERE sender_uuid = ? AND target_uuid = ?";
+        try (PreparedStatement statement = connection.prepareStatement(query)) {
+            statement.setString(1, senderUUID.toString());
+            statement.setString(2, targetUUID.toString());
+            ResultSet resultSet = statement.executeQuery();
+            return resultSet.getInt(1) > 0;
+        } catch (SQLException e) {
+            Bukkit.getLogger().log(Level.SEVERE, "SQL Exception occurred while checking for active offer", e);
         }
         return false;
-    }
-    public UUID getPlayerUUIDFromStorage(String playerName) {
-        List<Map<String, Object>> pendingOffersList = loadPendingOffers();
-        if (pendingOffersList != null) {
-            for (Map<String, Object> offerData : pendingOffersList) {
-                String existingSenderUUID = (String) offerData.get("sender_uuid");
-                String existingTargetUUID = (String) offerData.get("target_uuid");
-                if (playerName.equalsIgnoreCase(Bukkit.getOfflinePlayer(UUID.fromString(existingSenderUUID)).getName())) {
-                    return UUID.fromString(existingSenderUUID);
-                } else if (playerName.equalsIgnoreCase(Bukkit.getOfflinePlayer(UUID.fromString(existingTargetUUID)).getName())) {
-                    return UUID.fromString(existingTargetUUID);
-                }
-            }
-        }
-        return null; // Player UUID not found
     }
 
     public void savePendingOffer(UUID senderUUID, UUID targetUUID, Inventory offerInventory) {
@@ -96,47 +98,38 @@ public class DataManager {
             // If a pending offer already exists, return without adding and saving new entry to file.
             return;
         }
-        // Removes the offer data previously
-        removePendingOffer(senderUUID, targetUUID);
-        // Construct the data to be saved
-        Map<String, Object> offerData = new LinkedHashMap<>();
-        offerData.put("sender_uuid", senderUUID.toString());
-        offerData.put("target_uuid", targetUUID.toString());
-
-        // Serialize the offer inventory contents
-        List<Map<String, Object>> serializedContents = new ArrayList<>();
-        for (ItemStack itemStack : offerInventory.getContents()) {
-            if (itemStack != null && !itemStack.getType().equals(Material.AIR)) {
-                serializedContents.add(itemStack.serialize());
-            }
-        }
-        offerData.put("offer_inventory", serializedContents);
-
-        // Get the pending offer list from the YAML file
-        List<Map<String, Object>> pendingOffersList = (List<Map<String, Object>>) pendingOffersConfig.getList(PENDING_OFFERS_KEY);
-        if (pendingOffersList == null) {
-            pendingOffersList = new ArrayList<>();
-        }
-
-        // Create a new list to store the offer data
-        List<Map<String, Object>> newPendingOffersList = new ArrayList<>(pendingOffersList);
-
-        // Add the new offer data to the list
-        newPendingOffersList.add(offerData);
-        // Save the updated pending offers list to the YAML file
-        pendingOffersConfig.set(PENDING_OFFERS_KEY, newPendingOffersList);
-        try {
-            pendingOffersConfig.save(pendingOffersFile);
-        } catch (IOException e) {
-            e.printStackTrace();
-            System.out.println("Failed to save pending offer: " + e.getMessage());
+        String insertSQL = "INSERT INTO offers (sender_uuid, target_uuid, offer_inventory) VALUES (?, ?, ?)";
+        try (PreparedStatement statement = connection.prepareStatement(insertSQL)) {
+            statement.setString(1,senderUUID.toString());
+            statement.setString(2,targetUUID.toString());
+            statement.setString(3, serializeInventory(offerInventory)); // Converts inventory data to string
+            statement.executeUpdate();
+        } catch (SQLException e) {
+            Bukkit.getLogger().log(Level.SEVERE, "SQL Exception occurred while saving pending offer", e);
         }
     }
-    // Method to load the pending offer data from a YML
-    @SuppressWarnings("unchecked")
-    public List<Map<String, Object>> loadPendingOffers() {
-        // Retrieve the pending offers list from the YAML file
-        return (List<Map<String, Object>>) pendingOffersConfig.getList(PENDING_OFFERS_KEY, new ArrayList<Map<String, Object>>());
+
+    public void updatePendingOffer(UUID senderUUID, UUID targetUUID, Inventory offerInventory) {
+        String updateSQL = "UPDATE offers SET offer_inventory = ? WHERE sender_uuid = ? AND target_uuid = ?";
+        try (PreparedStatement statement = connection.prepareStatement(updateSQL)) {
+            statement.setString(1, serializeInventory(offerInventory));
+            statement.setString(2, senderUUID.toString());
+            statement.setString(3, targetUUID.toString());
+            statement.executeUpdate();
+        } catch (SQLException e) {
+            Bukkit.getLogger().log(Level.SEVERE, "SQL Exception occurred while updating pending offer", e);
+        }
+    }
+
+    public void resolvePendingOffer(UUID senderUUID, UUID targetUUID) {
+        String deleteSQL = "DELETE FROM offers WHERE sender_uuid = ? AND target_uuid = ?";
+        try (PreparedStatement statement = connection.prepareStatement(deleteSQL)) {
+            statement.setString(1, senderUUID.toString());
+            statement.setString(2, targetUUID.toString());
+            statement.executeUpdate();
+        } catch (SQLException e) {
+            Bukkit.getLogger().log(Level.SEVERE, "SQL Exception occurred while resolving pending offer", e);
+        }
     }
 
     public void processPendingOffer(UUID senderUUID, UUID targetUUID, Inventory offerInventory) {
@@ -157,120 +150,59 @@ public class DataManager {
         }
     }
 
-    public void updatePendingOffer(UUID senderUUID, UUID targetUUID, Inventory offerInventory) {
-        List<Map<String, Object>> pendingOffersList = loadPendingOffers();
-        if (pendingOffersList != null) {
-            // Find the offer data for the sender and target
-            for (Map<String, Object> offerData : pendingOffersList) {
-                UUID existingSenderUUID = UUID.fromString((String) offerData.get("sender_uuid"));
-                UUID existingTargetUUID = UUID.fromString((String) offerData.get("target_uuid"));
-                System.out.println("Existing senderUUID: " + existingSenderUUID);
-                System.out.println("Existing targetUUID: " + existingTargetUUID);
-
-                System.out.println("Provided senderUUID: " + senderUUID.toString());
-                System.out.println("Provided targetUUID: " + targetUUID.toString());
-                if (existingSenderUUID.equals(senderUUID) && existingTargetUUID.equals(targetUUID)) {
-                    // Update the offer inventory with the remaining items
-                    List<Map<String, Object>> serializedContents = new ArrayList<>();
-                    for (ItemStack itemStack : offerInventory.getContents()) {
-                        if (itemStack != null && !itemStack.getType().equals(Material.AIR)) {
-                            serializedContents.add(itemStack.serialize());
-                        }
-                    }
-                    offerData.put("offer_inventory", serializedContents);
-
-                    // Save the updated pending offers list to the YAML file
-                    pendingOffersConfig.set(PENDING_OFFERS_KEY, pendingOffersList);
-                    try {
-                        pendingOffersConfig.save(pendingOffersFile);
-                        System.out.println("Successfully updated pending offer in file.");
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                        System.out.println("Failed to update pending offer: " + e.getMessage());
-                    }
-                    return; // Exit the method after updating the offer
-                }
-            }
-            System.out.println("Pending offer not found for update.");
-        } else {
-            System.out.println("No pending offers found for update.");
-        }
-    }
-
-
-
-    public void resolvePendingOffer(UUID senderUUID, UUID targetUUID) {
-        List<Map<String, Object>> pendingOffersList = loadPendingOffers();
-        if (pendingOffersList != null) {
-            // Find the offer data for the sender and target
-            for (Map<String,Object> offerData: pendingOffersList) {
-                String existingSenderUUID = (String) offerData.get("sender_uuid");
-                String existingTargetUUID = (String) offerData.get("target_uuid");
-                if (existingSenderUUID != null && existingSenderUUID.equals(senderUUID.toString()) && existingTargetUUID.equals(targetUUID.toString())) {
-                    // Remove the offer inventory from the map
-                    offerData.remove("offer_inventory");
-
-                    pendingOffersConfig.set(PENDING_OFFERS_KEY, pendingOffersList);
-                    try {
-                        pendingOffersConfig.save(pendingOffersFile);
-                        System.out.println("Successfully deleted pending offer data from file");
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                        System.out.println("Failed to delete the pending offer: " + e.getMessage());
-                    }
-                    return;
-                }
-            }
-           System.out.println("Pending offer not found for deletion");
-        } else {
-            System.out.println("No pending offers found for deletion");
-        }
-    }
-
     public void acceptOffer(UUID playerUUID, UUID senderUUID) {
-        List<Map<String, Object>> pendingOffersList = loadPendingOffers();
+        String selectSQL = "SELECT offer_inventory FROM offers WHERE sender_uuid = ? AND target_uuid = ?";
+        try (PreparedStatement statement = connection.prepareStatement(selectSQL)) {
+            statement.setString(1, senderUUID.toString());
+            statement.setString(2, playerUUID.toString());
+            ResultSet resultSet = statement.executeQuery();
 
-        if (pendingOffersList == null) {
-            System.out.println("The pendingOffersList was null (Inside AcceptOfferCommand)");
-            return;
-        }
+            if (resultSet.next()) {
+                String serializedInventory = resultSet.getString("offer_inventory");
 
-        Map<String, Object> pendingOfferData = null;
-        for (Map<String, Object> offerData : pendingOffersList) {
-            UUID offerSenderUUID = UUID.fromString((String) offerData.get("sender_uuid"));
-            UUID offerTargetUUID = UUID.fromString((String) offerData.get("target_uuid"));
-            if (offerSenderUUID.equals(senderUUID) && offerTargetUUID.equals(playerUUID)) {
-                pendingOfferData = offerData;
-                break;
-            }
-        }
+                // Create a new inventory or use an existing one
+                Inventory inventory = Bukkit.createInventory(null, 9, "Offer Inventory"); // Adjust size as needed
 
-        if (pendingOfferData == null) {
-            System.out.println("The pendingOfferData was null (Inside AcceptOfferCommand)");
-            return;
-        }
+                // Deserialize the inventory
+                deserializeInventory(inventory, serializedInventory);
 
-        Player player = Bukkit.getPlayer(playerUUID);
-        if (player != null) {
-            // Create and open the inventory
-            Inventory inventory = Bukkit.createInventory(player, 9, ChatColor.GOLD + "InvOffer GUI: Accept");
-
-            // Fill the inventory with the contents from the offerData
-            List<Map<String, Object>> offerInventoryContents = (List<Map<String, Object>>) pendingOfferData.get("offer_inventory");
-            if (offerInventoryContents != null) {
-                for (Map<String, Object> itemData : offerInventoryContents) {
-                    ItemStack item = ItemStack.deserialize(itemData);
-                    inventory.addItem(item);
+                if (inventory != null) { // Check if inventory is not null
+                    Player player = Bukkit.getPlayer(playerUUID);
+                    if (player != null) {
+                        player.openInventory(inventory);
+                    } else {
+                        Bukkit.getLogger().warning("Player is not found.");
+                    }
+                } else {
+                    Bukkit.getLogger().warning("Deserialized inventory is null.");
                 }
             }
-
-            // Open the inventory for the player
-            player.openInventory(inventory);
-        } else {
-            System.out.println("Player is not found");
+        } catch (SQLException e) {
+            Bukkit.getLogger().log(Level.SEVERE, "SQL Exception occurred while accepting offer", e);
         }
     }
 
+
+    public String serializeInventory(Inventory inventory) {
+        List<ItemStack> itemStacks = new ArrayList<>();
+        for (ItemStack itemStack : inventory.getContents()) {
+            if (itemStack != null) {
+                itemStacks.add(itemStack);
+            }
+        }
+        return gson.toJson(itemStacks);
+    }
+
+    // Deserialize JSON to inventory
+    public void deserializeInventory(Inventory inventory, String json) {
+        Type itemListType = new TypeToken<List<ItemStack>>() {}.getType();
+        List<ItemStack> itemStacks = gson.fromJson(json, itemListType);
+        if (itemStacks != null) {
+            for (int i = 0; i < itemStacks.size(); i++) {
+                inventory.setItem(i, itemStacks.get(i));
+            }
+        }
+    }
 
 
 

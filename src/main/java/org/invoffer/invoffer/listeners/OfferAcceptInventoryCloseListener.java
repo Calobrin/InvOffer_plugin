@@ -61,8 +61,5 @@ public class OfferAcceptInventoryCloseListener implements Listener {
                 System.out.println("The inventory was not empty, it should have updated the offer with the items that remained.");
             }
         }
-        else {
-            return;
-        }
     }
 }

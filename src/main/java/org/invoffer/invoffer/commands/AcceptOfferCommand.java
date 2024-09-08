@@ -1,5 +1,6 @@
 package org.invoffer.invoffer.commands;
 
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -47,21 +48,16 @@ public class AcceptOfferCommand implements CommandExecutor {
             return true;
         }
         String senderName = args[0];
-        UUID senderUUID = dataManager.getPlayerUUIDFromStorage(senderName);
-        if (senderUUID == null) {
-            player.sendMessage(ChatColor.RED + "Player '" + senderName + "' not found.");
+        UUID senderUUID = Bukkit.getOfflinePlayer(senderName).getUniqueId();
+
+        if (senderUUID == null || !dataManager.hasActiveOffer(senderUUID, player.getUniqueId())) {
+            player.sendMessage(ChatColor.RED + "Player '" + senderName + "' not found or you do not have an active offer from them.");
             return true;
         }
-
-        UUID playerUUID = player.getUniqueId();
 
         if (player.getUniqueId().equals(senderUUID)) {
             player.sendMessage(ChatColor.RED + "Invalid target - You cannot accept offers from yourself. ");
             player.sendMessage(ChatColor.YELLOW + "Usage: /acceptoffer <player>");
-            return true;
-        }
-        if (!dataManager.hasActiveOffer(senderUUID, playerUUID)) {
-            player.sendMessage(ChatColor.RED + "You do not have an active offer from " + ChatColor.WHITE + senderName + ChatColor.RED + ".");
             return true;
         }
 
