@@ -183,7 +183,9 @@ public class DataManager {
     public String serializeInventory(Inventory inventory) {
         try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
              BukkitObjectOutputStream oos = new BukkitObjectOutputStream(baos)) {
+            // Write the inventory contents to the output stream
             oos.writeObject(inventory.getContents());
+            // Convert the byte array to a Base64-encoding string
             return Base64.getEncoder().encodeToString(baos.toByteArray());
         } catch (IOException e) {
             Bukkit.getLogger().log(Level.SEVERE, "Failed to serialize inventory", e);
@@ -195,7 +197,9 @@ public class DataManager {
         final int INVENTORY_SIZE = 9; // Fixed size for offer inventories
         try (ByteArrayInputStream bais = new ByteArrayInputStream(Base64.getDecoder().decode(base64));
              BukkitObjectInputStream ois = new BukkitObjectInputStream(bais)) {
+            // Read the serialized inventory data from the input stream
             ItemStack[] contents = (ItemStack[]) ois.readObject();
+            // Create a new inventory and set its contents, by adding the inventory data from the database to this window.
             Inventory inventory = Bukkit.createInventory(null, INVENTORY_SIZE, ChatColor.GOLD + "InvOffer GUI: Accept"); // Fixed size
             inventory.setContents(contents);
             return inventory;
