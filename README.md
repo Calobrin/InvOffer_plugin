@@ -1,45 +1,12 @@
-5/26/2024
+9/12/2024
 
-Oh boy what a session. This was technically a 2-day development session.
-I ran into some troubles when running this, for example I had issues getting the SenderUUID for when accepting the offer.
+This was a shorter development session. Focusing on fixing the issues with Inventory Serialization from the previous. Which is why this is labeled as 1.6.5, it is merely a continuation from the previous.
+Worked around a few different methods of serialization, using Gson which ran into the issue of "optional" being a problem for Gson, then using bukkit/spigot API and then finalizing on the method in this branches code. Which to be honest I am not fully grasping at this time, from what I understand, it is converting the inventory data into a Baase64-encoded string which is stored into the database.
+Then it uses the "oos.writeObject(inventory.getContents())" to serialize the inventory contents.
 
-Methods had been created to UpdatePendingOffers or to delete/resolvePendingOffers,
-either of which would be called on the inventoryCloseListener depending on if the window was empty or not.
-If the window wasn't empty, update the data with only the remaining items, and delete the ones the player took.
-This would allow the player to run the command again to get what remained of the offer.
+And then essentially the reverse occurs where we deserialize the inventory contents and put them into an inventory window with the matching title of what is expected in the inventoryclose listener for the acceptOffer command. I also had a problem with that where I overlooked the title being generated, so despite GETTING the inventory contents when accepting, the offer wasn't resolving or informing the player who sent it of its progress. Was a simple enough fix.
+Also one MAJOR thing I changed here is how the senderUUID was being saved.
+This was always one of my major concerns and why I even went the approach of using SQLite, where each time the player ran the acceptOffer command, it would set a variable to be the UUID of the person who sent the offer. But since when closing the offer window when accepting it would check that UUID to save the data, or update what remained in that case, it could cause unexpected behavior.
+Now, instead of the method in AcceptOffer being a variable, we now use another HashMap that holds the key/value of the UUID for the player who sent and received the offer. This also isn't stored persistently like the inventory offer data or anything, but that doesn't matter as this should only really be a thing during the servers runtime.
 
-Then if the window was empty, it would simply delete the data entry entirely.
-
-Again, the issue arose when trying to update, I had trouble sending the UUID saved in the AcceptOffer command to the closelistener.
-The issue was I was using the method for the sendoffer command, which means I was setting the sender of the offer to be the same as the person who GOT the offer, so when it updated it would either write the data to have two of the same UUID's,
-or it would not be able to find the offer of Player A and Player B UUID's.
-
-I started back up on the 26'th after a few day break trying to implement a method within the AcceptOffer Command to save and retrieve the senderUUID (or target of accept offer command)
-And then when the updateOffer method was called, it had what it needed to.
-This also posed problems because I now had to pass AcceptOfferCommand to the eventlistener, which means I also had to include AcceptOfferCommand into the OfferCommand.
-It became a giant mess, so I decided to create a separate event listener SPECIFICALLY for the accept window, I used to have it be an if check for the title name, but this made it easier.
-
-I modified some things in the data manager to include more ways to retrieve the UUID, some of which may be removed later on who knows for now.
-Eventually I got it working, but I ended up making changes to how the data is stored and updating.
-The reason was, when the offer resolved, and I went to accept the offer again, instead of saying no active offer it would simply say the target was not found.
-This is because of the if statement for if the targetUUID is null, and in this case it is because the data was deleted.
-There may be a better way around this, but instead of deleting the offer entirely, we simply erase the inventory contents, while keeping the UUID pairs.
-This way we change how the hasActiveOffers checks, which looks for an empty inventory, and it is able to update more cleanly.
-This also allows us to inform the user that they already accepted the offer from that player and just makes the player experience a bit better,
-because despite having it working. I wasn't happy with it.
-
-I see some glaring issues in the future to be considered.
-
-Because the offer and accept commands store the UUID of the target, it means each time the command is run it will reupdate that variable.
-So what happens if someone has an active offer open, and while they are doing that a different player accepts a different offer.
-
-If Player B accepts an offer from A, and has the window open,
-and player C accepts an offer from Player D, when player B goes to close their window without taking everything, it will update the offer to be from Player D, despite it not being from that player
-
-Something will need to be put in place that will change how it all works. Either make it so only one acceptOffer window can be running, in which case it would prevent all other players from accepting offers... But I imagine that to be used to exploit and block access to this offer from others..
-
-So obviously I have work to do. But for now the basic functions of this plugin are working!
-
-Next I need to set up commands for canceling offers and reclaiming their items, in the off chance the player they sent the offer to NEVER accepts it...
-
-But one step at a time!!!
+With this in place I feel confident enough to beta test this plugin on my server, and perhaps see more ways to expand (or fix) this plugin as I move forward.
