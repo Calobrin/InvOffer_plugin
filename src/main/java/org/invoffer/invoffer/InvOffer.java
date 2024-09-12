@@ -33,7 +33,7 @@ public final class InvOffer extends JavaPlugin {
         getServer().getPluginManager().registerEvents(offerInventoryCloseListener, this);
 
         // Register the OfferAcceptInventoryCloseListener for accepting offers
-        OfferAcceptInventoryCloseListener acceptInventoryCloseListener = acceptOfferCommand.getOfferAcceptInventoryCloseListener();
+        OfferAcceptInventoryCloseListener acceptInventoryCloseListener = new OfferAcceptInventoryCloseListener(dataManager, acceptOfferCommand);
         getServer().getPluginManager().registerEvents(acceptInventoryCloseListener, this);
 
         OfferInventoryClickListener offerInventoryClickListener = new OfferInventoryClickListener();

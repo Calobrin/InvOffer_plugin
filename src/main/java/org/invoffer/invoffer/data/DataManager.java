@@ -1,16 +1,16 @@
 package org.invoffer.invoffer.data;
 
 import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.util.io.BukkitObjectInputStream;
+import org.bukkit.util.io.BukkitObjectOutputStream;
 
 import java.io.*;
-import java.lang.reflect.Type;
 
 import java.sql.*;
 import java.util.*;
@@ -19,7 +19,7 @@ import java.util.logging.Level;
 public class DataManager {
 
     private static final String DATABASE_URL = "jdbc:sqlite:plugins/InvOffer/invoffer.db";
-    private Gson gson = new Gson();
+    private final Gson gson = new Gson();
     private Connection connection;
 
 
@@ -100,8 +100,8 @@ public class DataManager {
         }
         String insertSQL = "INSERT INTO offers (sender_uuid, target_uuid, offer_inventory) VALUES (?, ?, ?)";
         try (PreparedStatement statement = connection.prepareStatement(insertSQL)) {
-            statement.setString(1,senderUUID.toString());
-            statement.setString(2,targetUUID.toString());
+            statement.setString(1, senderUUID.toString());
+            statement.setString(2, targetUUID.toString());
             statement.setString(3, serializeInventory(offerInventory)); // Converts inventory data to string
             statement.executeUpdate();
         } catch (SQLException e) {
@@ -160,11 +160,8 @@ public class DataManager {
             if (resultSet.next()) {
                 String serializedInventory = resultSet.getString("offer_inventory");
 
-                // Create a new inventory or use an existing one
-                Inventory inventory = Bukkit.createInventory(null, 9, "Offer Inventory"); // Adjust size as needed
-
-                // Deserialize the inventory
-                deserializeInventory(inventory, serializedInventory);
+                // Create a new inventory with the fixed size of 9
+                Inventory inventory = deserializeInventory(serializedInventory);
 
                 if (inventory != null) { // Check if inventory is not null
                     Player player = Bukkit.getPlayer(playerUUID);
@@ -184,23 +181,27 @@ public class DataManager {
 
 
     public String serializeInventory(Inventory inventory) {
-        List<ItemStack> itemStacks = new ArrayList<>();
-        for (ItemStack itemStack : inventory.getContents()) {
-            if (itemStack != null) {
-                itemStacks.add(itemStack);
-            }
+        try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
+             BukkitObjectOutputStream oos = new BukkitObjectOutputStream(baos)) {
+            oos.writeObject(inventory.getContents());
+            return Base64.getEncoder().encodeToString(baos.toByteArray());
+        } catch (IOException e) {
+            Bukkit.getLogger().log(Level.SEVERE, "Failed to serialize inventory", e);
+            return null;
         }
-        return gson.toJson(itemStacks);
     }
 
-    // Deserialize JSON to inventory
-    public void deserializeInventory(Inventory inventory, String json) {
-        Type itemListType = new TypeToken<List<ItemStack>>() {}.getType();
-        List<ItemStack> itemStacks = gson.fromJson(json, itemListType);
-        if (itemStacks != null) {
-            for (int i = 0; i < itemStacks.size(); i++) {
-                inventory.setItem(i, itemStacks.get(i));
-            }
+    public Inventory deserializeInventory(String base64) {
+        final int INVENTORY_SIZE = 9; // Fixed size for offer inventories
+        try (ByteArrayInputStream bais = new ByteArrayInputStream(Base64.getDecoder().decode(base64));
+             BukkitObjectInputStream ois = new BukkitObjectInputStream(bais)) {
+            ItemStack[] contents = (ItemStack[]) ois.readObject();
+            Inventory inventory = Bukkit.createInventory(null, INVENTORY_SIZE, ChatColor.GOLD + "InvOffer GUI: Accept"); // Fixed size
+            inventory.setContents(contents);
+            return inventory;
+        } catch (IOException | ClassNotFoundException e) {
+            Bukkit.getLogger().log(Level.SEVERE, "Failed to deserialize inventory", e);
+            return null;
         }
     }
 

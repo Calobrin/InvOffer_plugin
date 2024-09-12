@@ -34,10 +34,9 @@ public class OfferAcceptInventoryCloseListener implements Listener {
 
     @EventHandler
     public void onInventoryClose(InventoryCloseEvent event) {
-        // Checks if the inventory closed was the offer Accept menu.
         if (event.getView().getTitle().equals(ChatColor.GOLD + "InvOffer GUI: Accept")) {
             Player player = (Player) event.getPlayer();
-            UUID senderUUID = acceptOfferCommand.getSenderUUID();
+            UUID senderUUID = acceptOfferCommand.getSenderUUID(player); // Pass the player instance here
             UUID targetUUID = player.getUniqueId();
             Player senderPlayer = Bukkit.getPlayer(senderUUID);
             Inventory offerInventory = event.getInventory();
@@ -49,8 +48,6 @@ public class OfferAcceptInventoryCloseListener implements Listener {
                 if (senderPlayer != null && senderPlayer.isOnline()) {
                     senderPlayer.sendMessage(ChatColor.GREEN + "Your offer to " + ChatColor.WHITE + player.getName() + ChatColor.GREEN + " has been fully accepted.");
                 }
-
-                System.out.println("The inventory was empty, it should have deleted the pending offer.");
             } else {
                 // If the inventory is NOT empty, update the offer with the remaining items
                 dataManager.updatePendingOffer(senderUUID, targetUUID, offerInventory);
@@ -58,7 +55,6 @@ public class OfferAcceptInventoryCloseListener implements Listener {
                     senderPlayer.sendMessage(ChatColor.YELLOW + "Your offer to " + ChatColor.WHITE + player.getName() + ChatColor.YELLOW + " was partially accepted.");
                 }
                 player.sendMessage(ChatColor.YELLOW + "There were still items remaining in the offer. You can claim them by resending that command again.");
-                System.out.println("The inventory was not empty, it should have updated the offer with the items that remained.");
             }
         }
     }

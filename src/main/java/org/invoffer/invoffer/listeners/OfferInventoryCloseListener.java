@@ -22,7 +22,6 @@ public class OfferInventoryCloseListener implements Listener {
     public OfferInventoryCloseListener(DataManager dataManager, OfferCommand offerCommand) {
         this.dataManager = dataManager;
         this.offerCommand = offerCommand;
-        System.out.println("OfferInventoryCloseListener constructor called with OfferCommand instance: " + offerCommand);
     }
 
     private boolean isInventoryEmpty(Inventory inventory){

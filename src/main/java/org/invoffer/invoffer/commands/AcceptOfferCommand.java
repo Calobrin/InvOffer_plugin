@@ -9,24 +9,24 @@ import org.bukkit.entity.Player;
 import org.invoffer.invoffer.data.DataManager;
 import org.invoffer.invoffer.listeners.OfferAcceptInventoryCloseListener;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 public class AcceptOfferCommand implements CommandExecutor {
 
     private final DataManager dataManager;
-    private final OfferAcceptInventoryCloseListener offerAcceptInventoryCloseListener;
-    private UUID senderUUID;
+    private final Map<UUID, UUID> playerOffers = new HashMap<>();
 
     public AcceptOfferCommand(DataManager dataManager) {
         this.dataManager = dataManager;
-        this.offerAcceptInventoryCloseListener = new OfferAcceptInventoryCloseListener(dataManager, this);
     }
-    public OfferAcceptInventoryCloseListener getOfferAcceptInventoryCloseListener() {
-        return offerAcceptInventoryCloseListener;
+    public void setSenderUUID(Player player, UUID senderUUID) {
+        playerOffers.put(player.getUniqueId(), senderUUID);
     }
 
-    public UUID getSenderUUID(){
-        return senderUUID;
+    public UUID getSenderUUID(Player player){
+        return playerOffers.get(player.getUniqueId());
     }
     /*
     For the sake of my own mentality:
@@ -37,7 +37,6 @@ public class AcceptOfferCommand implements CommandExecutor {
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        // Checks if the sender of command is a player or not - only players can use this command.
         if (!(sender instanceof Player player)) {
             sender.sendMessage(ChatColor.RED + "Command only usable by players");
             return true;
@@ -56,12 +55,12 @@ public class AcceptOfferCommand implements CommandExecutor {
         }
 
         if (player.getUniqueId().equals(senderUUID)) {
-            player.sendMessage(ChatColor.RED + "Invalid target - You cannot accept offers from yourself. ");
+            player.sendMessage(ChatColor.RED + "Invalid target - You cannot accept offers from yourself.");
             player.sendMessage(ChatColor.YELLOW + "Usage: /acceptoffer <player>");
             return true;
         }
-
-        this.senderUUID = senderUUID;
+        // Store the senderUUID associated with this player
+        setSenderUUID(player, senderUUID);
 
         // Proceed with accepting the offer
         dataManager.acceptOffer(player.getUniqueId(), senderUUID);
