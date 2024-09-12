@@ -10,8 +10,10 @@ commands:
     usage: /offer <player>
     aliases: offer
     permission: invoffer
-    permission-message: You do not have the offer permission.
+    permission-message: You do not have permission to send offers (invoffer).
   acceptoffer:
     description: Accept an offer from another player, opening a window containing the items offered to you.
     usage: /acceptoffer <player>
     aliases: invofferaccept
+    permission: acceptoffer
+    permission-message: You do not have the permission to accept offers (acceptoffer).
