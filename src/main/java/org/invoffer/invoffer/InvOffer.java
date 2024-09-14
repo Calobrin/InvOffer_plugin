@@ -2,6 +2,7 @@ package org.invoffer.invoffer;
 
 import org.bukkit.plugin.java.JavaPlugin;
 import org.invoffer.invoffer.commands.AcceptOfferCommand;
+import org.invoffer.invoffer.commands.ListOffersCommand;
 import org.invoffer.invoffer.commands.OfferCommand;
 import org.invoffer.invoffer.data.DataManager;
 import org.invoffer.invoffer.listeners.OfferAcceptInventoryCloseListener;
@@ -22,14 +23,17 @@ public final class InvOffer extends JavaPlugin {
 
         dataManager = new DataManager();
 
-        // Register the OfferCommand
+        // Register the OfferCommand, AcceptOfferCommand, and ListOffersCommand
         offerCommand = new OfferCommand(dataManager);
         AcceptOfferCommand acceptOfferCommand = new AcceptOfferCommand(dataManager);
-        getCommand("invOffer").setExecutor(offerCommand);
+        ListOffersCommand listOffersCommand = new ListOffersCommand(dataManager);
+
+        getCommand("invoffer").setExecutor(offerCommand);
         getCommand("acceptOffer").setExecutor(acceptOfferCommand);
+        getCommand("listOffers").setExecutor(listOffersCommand);
 
         // Register the OfferInventoryCloseListener
-        OfferInventoryCloseListener offerInventoryCloseListener = offerCommand.getOfferInventoryCloseListener();
+        OfferInventoryCloseListener offerInventoryCloseListener = new OfferInventoryCloseListener(dataManager, offerCommand);
         getServer().getPluginManager().registerEvents(offerInventoryCloseListener, this);
 
         // Register the OfferAcceptInventoryCloseListener for accepting offers

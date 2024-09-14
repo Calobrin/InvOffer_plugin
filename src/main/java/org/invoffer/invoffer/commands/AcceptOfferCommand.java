@@ -7,7 +7,6 @@ import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.invoffer.invoffer.data.DataManager;
-import org.invoffer.invoffer.listeners.OfferAcceptInventoryCloseListener;
 
 import java.util.HashMap;
 import java.util.Map;

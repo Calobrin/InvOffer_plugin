@@ -39,7 +39,7 @@ public class OfferInventoryCloseListener implements Listener {
                 // Process the pending offer
                 Player player = (Player) event.getPlayer();
                 UUID senderUUID = event.getPlayer().getUniqueId();
-                UUID targetUUID = offerCommand.getTargetUUID();
+                UUID targetUUID = offerCommand.getTargetUUID(player);
                 Inventory offerInventory = event.getInventory();
                 //System.out.println("OfferInventoryCloseListener: TargetUUID: " + targetUUID);
                 if (targetUUID != null) {

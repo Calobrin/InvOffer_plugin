@@ -1,9 +1,8 @@
 package org.invoffer.invoffer.data;
 
-import com.google.gson.Gson;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
-import org.bukkit.Material;
+//import org.bukkit.Material;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -19,7 +18,6 @@ import java.util.logging.Level;
 public class DataManager {
 
     private static final String DATABASE_URL = "jdbc:sqlite:plugins/InvOffer/invoffer.db";
-    private final Gson gson = new Gson();
     private Connection connection;
 
 
@@ -71,14 +69,14 @@ public class DataManager {
         }
     }
 
-    private boolean isInventoryEmpty(Inventory inventory) {
-        for (ItemStack itemStack : inventory.getContents()) {
-            if (itemStack != null && !itemStack.getType().equals(Material.AIR)) {
-                return false;
-            }
-        }
-        return true;
-    }
+//    private boolean isInventoryEmpty(Inventory inventory) {
+//        for (ItemStack itemStack : inventory.getContents()) {
+//            if (itemStack != null && !itemStack.getType().equals(Material.AIR)) {
+//                return false;
+//            }
+//        }
+//        return true;
+//    }
 
     public boolean hasActiveOffer(UUID senderUUID, UUID targetUUID) {
         String query = "SELECT COUNT(*) FROM offers WHERE sender_uuid = ? AND target_uuid = ?";
@@ -207,6 +205,44 @@ public class DataManager {
             Bukkit.getLogger().log(Level.SEVERE, "Failed to deserialize inventory", e);
             return null;
         }
+    }
+
+    public List<String> getOffersReceivedByPlayer(UUID playerUUID) {
+        List<String> senderNames = new ArrayList<>();
+        String query = "SELECT sender_uuid FROM offers WHERE target_uuid = ?";
+        try (PreparedStatement statement = connection.prepareStatement(query)) {
+            statement.setString(1, playerUUID.toString());
+            ResultSet resultSet = statement.executeQuery();
+            while (resultSet.next()) {
+                UUID senderUUID = UUID.fromString(resultSet.getString("sender_uuid"));
+                String senderName = Bukkit.getOfflinePlayer(senderUUID).getName();
+                if (senderName != null) {
+                    senderNames.add(senderName);
+                }
+            }
+        } catch (SQLException e) {
+            Bukkit.getLogger().log(Level.SEVERE,"SQL Exception occurred while getting list of received offers", e );
+        }
+        return senderNames;
+    }
+
+    public List<String> getOffersSentByPlayer(UUID playerUUID) {
+        List<String> targetNames = new ArrayList<>();
+        String query = "SELECT target_uuid FROM offers WHERE sender_uuid = ?";
+        try (PreparedStatement statement = connection.prepareStatement(query)) {
+            statement.setString(1, playerUUID.toString());
+            ResultSet resultSet = statement.executeQuery();
+            while (resultSet.next()) {
+                UUID targetUUID = UUID.fromString(resultSet.getString("target_uuid"));
+                String targetName = Bukkit.getOfflinePlayer(targetUUID).getName();
+                if (targetName != null) {
+                    targetNames.add(targetName);
+                }
+            }
+        } catch (SQLException e) {
+            Bukkit.getLogger().log(Level.SEVERE, "SQL Exception occurred while getting list of sent offers.", e);
+        }
+        return targetNames;
     }
 
 

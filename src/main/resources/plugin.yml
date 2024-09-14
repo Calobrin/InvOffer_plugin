@@ -7,7 +7,7 @@ description: My first plugin project to create a plugin to allow players to offe
 commands:
   invoffer:
     description: Opens inventory window for offering items to another player.
-    usage: /offer <player>
+    usage: /invoffer <player>
     aliases: offer
     permission: invoffer
     permission-message: You do not have permission to send offers (invoffer).
@@ -17,3 +17,9 @@ commands:
     aliases: invofferaccept
     permission: acceptoffer
     permission-message: You do not have the permission to accept offers (acceptoffer).
+  listoffers:
+    description: Shows you a list of all pending offers being sent to from other players, and from you to other players.
+    usage: /listoffers
+    aliases: offerlist
+    permission: listoffers
+    permission-message: You do not have the permission to list offers (listoffers).

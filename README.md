@@ -1,7 +1,16 @@
-9/12/2024
+9/14/2024
 
-This was a shorter development session. Focusing on fixing the issues with Inventory Serialization from the previous. Which is why this is labeled as 1.6.5, it is merely a continuation from the previous. Worked around a few different methods of serialization, using Gson which ran into the issue of "optional" being a problem for Gson, then using bukkit/spigot API and then finalizing on the method in this branches code. Which to be honest I am not fully grasping at this time, from what I understand, it is converting the inventory data into a Baase64-encoded string which is stored into the database. Then it uses the "oos.writeObject(inventory.getContents())" to serialize the inventory contents.
+I started up todays session by making sure that slight tweak I did post 0.1.6.5 was correctly working.
+Last time I set up the acceptOfferCommand to use a HashMap of the UUID's so when multiple players run the command,
+it won't overwrite who sent the offer when updating. I forgot to add the same approach to SENDING offers so while beta testing my
+plugin I noticed the offer got redirected to a different player than what I used in the command.
 
-And then essentially the reverse occurs where we deserialize the inventory contents and put them into an inventory window with the matching title of what is expected in the inventoryclose listener for the acceptOffer command. I also had a problem with that where I overlooked the title being generated, so despite GETTING the inventory contents when accepting, the offer wasn't resolving or informing the player who sent it of its progress. Was a simple enough fix. Also one MAJOR thing I changed here is how the senderUUID was being saved. This was always one of my major concerns and why I even went the approach of using SQLite, where each time the player ran the acceptOffer command, it would set a variable to be the UUID of the person who sent the offer. But since when closing the offer window when accepting it would check that UUID to save the data, or update what remained in that case, it could cause unexpected behavior. Now, instead of the method in AcceptOffer being a variable, we now use another HashMap that holds the key/value of the UUID for the player who sent and received the offer. This also isn't stored persistently like the inventory offer data or anything, but that doesn't matter as this should only really be a thing during the servers runtime.
+After a quick test (it worked), I went straight on to further development.
+I know I wanted to make a CancelOffer command, but I felt it may be better to quickly create a command to show a list of all pending offers a player may have.
+The idea is, you need the name of the player to accept (and cancel, in the future) offers. But if you happened to have logged off, or had a long lasting offer you may never know.
+Well now, you can run the /listoffers command, and it will tell you if you have any sent or received pending offers.
+On TOP of this, it will tell you if you DON'T have any pending sent/received offers.
+So you can have a pending sent, but tells you no pending received, or vice versa.
+It was simple enough to do, just two more methods in the DataManager and handling how it works through strings.
 
-With this in place I feel confident enough to beta test this plugin on my server, and perhaps see more ways to expand (or fix) this plugin as I move forward.
+Overall happy with this- it all worked first try too! I may be getting better at this c:
