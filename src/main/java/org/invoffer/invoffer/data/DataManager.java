@@ -137,7 +137,7 @@ public class DataManager {
             String senderName = Bukkit.getOfflinePlayer(senderUUID).getName();
             if (senderName != null) {
                 targetPlayer.sendMessage(ChatColor.YELLOW + "You have received an InvOffer from " + ChatColor.WHITE + senderName + ChatColor.YELLOW + ".");
-                targetPlayer.sendMessage(ChatColor.YELLOW + "You can accept this offer by typing " + ChatColor.WHITE + "/acceptOffer " + senderName + ChatColor.YELLOW + ".");
+                targetPlayer.sendMessage(ChatColor.YELLOW + "You can accept this offer by typing " + ChatColor.WHITE + "/acceptoffer " + senderName + ChatColor.YELLOW + ".");
             }
         } else {
             // Notify the sender that the target player is offline
