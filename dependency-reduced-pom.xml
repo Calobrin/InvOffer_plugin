@@ -4,7 +4,7 @@
   <groupId>org.invoffer</groupId>
   <artifactId>InvOffer</artifactId>
   <name>InvOffer</name>
-  <version>0.1.7-Development-SNAPSHOT</version>
+  <version>0.1.8.1-Development-SNAPSHOT</version>
   <build>
     <resources>
       <resource>

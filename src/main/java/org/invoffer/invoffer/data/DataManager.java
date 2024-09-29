@@ -18,6 +18,8 @@ import java.util.logging.Level;
 public class DataManager {
 
     private static final String DATABASE_URL = "jdbc:sqlite:plugins/InvOffer/invoffer.db";
+    private static final String ACCEPT_TITLE = ChatColor.GOLD + "InvOffer GUI: Accept";
+    private static final String CANCEL_TITLE = ChatColor.GOLD + "InvOffer GUI: Cancel";
     private Connection connection;
 
 
@@ -159,7 +161,7 @@ public class DataManager {
                 String serializedInventory = resultSet.getString("offer_inventory");
 
                 // Create a new inventory with the fixed size of 9
-                Inventory inventory = deserializeInventory(serializedInventory);
+                Inventory inventory = deserializeInventory(serializedInventory, ACCEPT_TITLE);
 
                 if (inventory != null) { // Check if inventory is not null
                     Player player = Bukkit.getPlayer(playerUUID);
@@ -177,6 +179,36 @@ public class DataManager {
         }
     }
 
+    public void cancelOffer (UUID senderUUID, UUID targetUUID) {
+        String selectSQL = "SELECT offer_inventory FROM offers WHERE sender_uuid = ? AND target_uuid = ?";
+        try (PreparedStatement statement = connection.prepareStatement(selectSQL)) {
+            statement.setString(1, senderUUID.toString());
+            statement.setString(2, targetUUID.toString());
+            ResultSet resultSet = statement.executeQuery();
+
+            if (resultSet.next()) {
+                String serializedInventory = resultSet.getString("offer_inventory");
+
+                Inventory inventory = deserializeInventory(serializedInventory, CANCEL_TITLE);
+
+                if (inventory != null) {
+                    Player player = Bukkit.getPlayer(senderUUID);
+                    if (player != null) {
+                        player.openInventory(inventory);
+                    } else {
+                        Bukkit.getLogger().warning("Player is not found");
+                    }
+                } else {
+                    Bukkit.getLogger().warning("Deserialized inventory is null.");
+                }
+            }
+
+
+        } catch (SQLException e) {
+            Bukkit.getLogger().log(Level.SEVERE, "SQL Exception occurred while canceling the offer", e);
+        }
+    }
+
 
     public String serializeInventory(Inventory inventory) {
         try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -191,14 +223,14 @@ public class DataManager {
         }
     }
 
-    public Inventory deserializeInventory(String base64) {
+    public Inventory deserializeInventory(String base64, String title) {
         final int INVENTORY_SIZE = 9; // Fixed size for offer inventories
         try (ByteArrayInputStream bais = new ByteArrayInputStream(Base64.getDecoder().decode(base64));
              BukkitObjectInputStream ois = new BukkitObjectInputStream(bais)) {
             // Read the serialized inventory data from the input stream
             ItemStack[] contents = (ItemStack[]) ois.readObject();
             // Create a new inventory and set its contents, by adding the inventory data from the database to this window.
-            Inventory inventory = Bukkit.createInventory(null, INVENTORY_SIZE, ChatColor.GOLD + "InvOffer GUI: Accept"); // Fixed size
+            Inventory inventory = Bukkit.createInventory(null, INVENTORY_SIZE, title); // Fixed size
             inventory.setContents(contents);
             return inventory;
         } catch (IOException | ClassNotFoundException e) {

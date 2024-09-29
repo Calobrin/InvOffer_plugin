@@ -35,7 +35,8 @@ public class OfferInventoryCloseListener implements Listener {
     @EventHandler
     public void onInventoryClose(InventoryCloseEvent event) {
             // Check if the inventory closed was the Offer Menu
-            if (event.getView().getTitle().equals(ChatColor.GOLD + "InvOffer GUI: Send")) {
+            if (event.getView().getTitle().equals(ChatColor.GOLD + "InvOffer GUI: Send")
+            && event.getInventory().getSize() == 9) {
                 // Process the pending offer
                 Player player = (Player) event.getPlayer();
                 UUID senderUUID = event.getPlayer().getUniqueId();
