@@ -56,7 +56,8 @@ public class DataManager {
                 "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
                 "sender_uuid TEXT NOT NULL, " +
                 "target_uuid TEXT NOT NULL, " +
-                "offer_inventory TEXT NOT NULL)";
+                "offer_inventory TEXT NOT NULL," +
+                "offer_status TEXT NOT NULL DEFAULT 'pending')";
         statement.execute(createTableSQL);
         statement.close();
     }
@@ -98,7 +99,7 @@ public class DataManager {
             // If a pending offer already exists, return without adding and saving new entry to file.
             return;
         }
-        String insertSQL = "INSERT INTO offers (sender_uuid, target_uuid, offer_inventory) VALUES (?, ?, ?)";
+        String insertSQL = "INSERT INTO offers (sender_uuid, target_uuid, offer_inventory, offer_status) VALUES (?, ?, ?, 'pending')";
         try (PreparedStatement statement = connection.prepareStatement(insertSQL)) {
             statement.setString(1, senderUUID.toString());
             statement.setString(2, targetUUID.toString());
@@ -206,6 +207,51 @@ public class DataManager {
 
         } catch (SQLException e) {
             Bukkit.getLogger().log(Level.SEVERE, "SQL Exception occurred while canceling the offer", e);
+        }
+    }
+
+    public void updateOfferStatus(UUID senderUUID, UUID targetUUID, String status) {
+        String updateSQL = "UPDATE offers SET offer_status = ? WHERE sender_uuid = ? AND target_uuid = ?";
+        try (PreparedStatement statement = connection.prepareStatement(updateSQL)) {
+            statement.setString(1, status);
+            statement.setString(2, senderUUID.toString());
+            statement.setString(3, targetUUID.toString());
+            statement.executeUpdate();
+        } catch (SQLException e) {
+            Bukkit.getLogger().log(Level.SEVERE, "SQL Exception occurred while updating offer status", e);
+        }
+    }
+
+    public String getOfferStatus(UUID senderUUID, UUID targetUUID) {
+        String status = null;
+        String query = "Select offer_status FROM offers WHERE sender_uuid = ? AND target_uuid = ?";
+
+        try {
+            PreparedStatement statement = connection.prepareStatement(query);
+            statement.setString(1, senderUUID.toString());
+            statement.setString(2, targetUUID.toString());
+
+            ResultSet resultSet = statement.executeQuery();
+
+            if (resultSet.next()) {
+                status = resultSet.getString("offer_status");
+            }
+
+            resultSet.close();
+            statement.close();
+        } catch (SQLException e) {
+            Bukkit.getLogger().log(Level.SEVERE, "SQL Exception occurred while retrieving offer status", e);
+        }
+
+        return status;
+    }
+    public void resetAcceptingStatus() {
+        String updateSQL = "UPDATE offers SET offer_status = 'pending' WHERE offer_status = 'accepting'";
+        try (PreparedStatement statement = connection.prepareStatement(updateSQL)) {
+            int rowsUpdated = statement.executeUpdate();
+            Bukkit.getLogger().info(rowsUpdated + "Offers have been reset from 'accepting' to 'pending'.");
+        } catch (SQLException e) {
+            Bukkit.getLogger().log(Level.SEVERE, "SQL Exception occurred while resetting accepting offers to pending.");
         }
     }
 

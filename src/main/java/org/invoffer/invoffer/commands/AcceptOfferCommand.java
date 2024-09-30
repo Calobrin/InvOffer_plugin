@@ -58,10 +58,23 @@ public class AcceptOfferCommand implements CommandExecutor {
             player.sendMessage(ChatColor.YELLOW + "Usage: /acceptoffer <player>");
             return true;
         }
+        // Check the status of an offer - you cannot accept an offer that has been canceled.
+        String currentStatus = dataManager.getOfferStatus(senderUUID, player.getUniqueId());
+
+        if (currentStatus == null) {
+            player.sendMessage(ChatColor.RED + "An error occurred while checking the offer status for accepting an offer");
+            return true;
+        }
+
+        if (!"pending".equals(currentStatus)) {
+            player.sendMessage(ChatColor.RED + "This offer cannot be accepted, it is either no longer pending, or is being canceled");
+            return true;
+        }
         // Store the senderUUID associated with this player
         setSenderUUID(player, senderUUID);
 
         // Proceed with accepting the offer
+        dataManager.updateOfferStatus(senderUUID,player.getUniqueId(), "accepting");
         dataManager.acceptOffer(player.getUniqueId(), senderUUID);
         return true;
     }

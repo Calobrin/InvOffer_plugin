@@ -20,7 +20,7 @@ public final class InvOffer extends JavaPlugin {
     public void onEnable() {
         // Plugin startup logic
         instance = this;
-        System.out.println("InvOffer has started! This plugin is still in development...");
+        getLogger().info("InvOffer has started! This plugin is still in development...");
 
         dataManager = new DataManager();
 
@@ -45,6 +45,8 @@ public final class InvOffer extends JavaPlugin {
 
         OfferInventoryClickListener offerInventoryClickListener = new OfferInventoryClickListener();
         getServer().getPluginManager().registerEvents(offerInventoryClickListener, this);
+
+        dataManager.resetAcceptingStatus();
 
     }
 

@@ -13,10 +13,14 @@ public class OfferInventoryClickListener implements Listener {
 
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
-        // Check if the clicked inventory window is the InvOffer GUI for Accepting offers.
-        if (event.getView().getTitle().equals(ChatColor.GOLD + "InvOffer GUI: Accept")) {
+        String title = event.getView().getTitle();
+        Inventory topInventory = event.getView().getTopInventory();
+        // Check if the clicked inventory window is the InvOffer GUI for Accepting or Canceling offers
+        if ((title.equals(ChatColor.GOLD + "InvOffer GUI: Accept") ||
+            title.equals(ChatColor.GOLD + "InvOffer GUI: Cancel")) &&
+            topInventory.getSize() == 9)  {
+
             Inventory clickedInventory = event.getClickedInventory();
-            Inventory topInventory = event.getView().getTopInventory();
             ItemStack clickedItem = event.getCurrentItem();
             ItemStack cursorItem = event.getCursor();
 
@@ -44,8 +48,12 @@ public class OfferInventoryClickListener implements Listener {
     // Before this simple thing was added, all my robust efforts to nullify adding items to the GUI met in failure.
     @EventHandler
     public void onInventoryDrag(InventoryDragEvent event) {
-        // Prevent dragging items into the InvOffer GUI
-        if (event.getView().getTitle().equals(ChatColor.GOLD + "InvOffer GUI: Accept")) {
+        String title = event.getView().getTitle();
+        Inventory topInventory = event.getView().getTopInventory();
+        // Prevent dragging items into the InvOffer GUI for both the Accept and Cancel windows
+        if ((title.equals(ChatColor.GOLD + "InvOffer GUI: Accept") ||
+            title.equals(ChatColor.GOLD + "InvOffer GUI: Cancel")) &&
+            topInventory.getSize() == 9) {
             event.setCancelled(true);
         }
     }
