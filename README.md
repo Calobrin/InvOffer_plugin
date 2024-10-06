@@ -1,6 +1,6 @@
 10/05/2024
 
-Quick spontaneous session - 0.1.9!
+Quick spontaneous session - 0.1.9! 
 
 I decided I wanted to go in and add some polish and pizazz. I thought it might be neat to allow the execution of commands by clicking on the text sent to players during offer transactions.
 
@@ -16,3 +16,5 @@ which currently houses the methods to serialize/deserialize inventory. I plan to
 
 This was meant to be a smaller little dev session, and I am happy with the results. 
 so most of 0.1.9 development will be focusing on polishing up the messages sent to players and improving the overall feel of the plugin.
+
+(I also forgot to change my commit message. god damnit all)
