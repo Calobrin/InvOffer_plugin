@@ -5,7 +5,7 @@ import org.invoffer.invoffer.commands.AcceptOfferCommand;
 import org.invoffer.invoffer.commands.CancelOfferCommand;
 import org.invoffer.invoffer.commands.ListOffersCommand;
 import org.invoffer.invoffer.commands.OfferCommand;
-import org.invoffer.invoffer.data.DataManager;
+import org.invoffer.invoffer.data.OfferManager;
 import org.invoffer.invoffer.listeners.OfferAcceptAndCancelInventoryCloseListener;
 import org.invoffer.invoffer.listeners.OfferInventoryClickListener;
 import org.invoffer.invoffer.listeners.OfferInventoryCloseListener;
@@ -14,7 +14,7 @@ public final class InvOffer extends JavaPlugin {
 
     private static InvOffer instance;
     private static OfferCommand offerCommand;
-    private DataManager dataManager;
+    private OfferManager offerManager;
 
     @Override
     public void onEnable() {
@@ -22,13 +22,13 @@ public final class InvOffer extends JavaPlugin {
         instance = this;
         getLogger().info("InvOffer has started! This plugin is still in development...");
 
-        dataManager = new DataManager();
+        offerManager = new OfferManager();
 
         // Register the OfferCommand, AcceptOfferCommand, and ListOffersCommand
-        offerCommand = new OfferCommand(dataManager);
-        AcceptOfferCommand acceptOfferCommand = new AcceptOfferCommand(dataManager);
-        CancelOfferCommand cancelOfferCommand = new CancelOfferCommand(dataManager);
-        ListOffersCommand listOffersCommand = new ListOffersCommand(dataManager);
+        offerCommand = new OfferCommand(offerManager);
+        AcceptOfferCommand acceptOfferCommand = new AcceptOfferCommand(offerManager);
+        CancelOfferCommand cancelOfferCommand = new CancelOfferCommand(offerManager);
+        ListOffersCommand listOffersCommand = new ListOffersCommand(offerManager);
 
         getCommand("invoffer").setExecutor(offerCommand);
         getCommand("acceptOffer").setExecutor(acceptOfferCommand);
@@ -36,24 +36,24 @@ public final class InvOffer extends JavaPlugin {
         getCommand("listOffers").setExecutor(listOffersCommand);
 
         // Register the OfferInventoryCloseListener
-        OfferInventoryCloseListener offerInventoryCloseListener = new OfferInventoryCloseListener(dataManager, offerCommand);
+        OfferInventoryCloseListener offerInventoryCloseListener = new OfferInventoryCloseListener(offerManager, offerCommand);
         getServer().getPluginManager().registerEvents(offerInventoryCloseListener, this);
 
         // Register the OfferAcceptAndCancelInventoryCloseListener for accepting offers
-        OfferAcceptAndCancelInventoryCloseListener offerAcceptAndCancelInventoryCloseListener = new OfferAcceptAndCancelInventoryCloseListener(dataManager, acceptOfferCommand, cancelOfferCommand);
+        OfferAcceptAndCancelInventoryCloseListener offerAcceptAndCancelInventoryCloseListener = new OfferAcceptAndCancelInventoryCloseListener(offerManager, acceptOfferCommand, cancelOfferCommand);
         getServer().getPluginManager().registerEvents(offerAcceptAndCancelInventoryCloseListener, this);
 
         OfferInventoryClickListener offerInventoryClickListener = new OfferInventoryClickListener();
         getServer().getPluginManager().registerEvents(offerInventoryClickListener, this);
 
-        dataManager.resetAcceptingStatus();
+        offerManager.resetAcceptingStatus();
 
     }
 
     @Override
     public void onDisable() {
         // Plugin shutdown logic
-        dataManager.closeConnection();
+        offerManager.closeConnection();
         instance = null;
         System.out.println("InvOffer has shut down.");
 

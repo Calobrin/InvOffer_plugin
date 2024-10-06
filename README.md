@@ -1,22 +1,18 @@
-9/30/2024
-This is (or should be) the final development session for 0.1.8, where we are including the cancelOffer command and all the logic that follows that.
-This session was devoted to setting up the changes to the Database, I wanted to have an additional column made that would check/track the statuses of offers in the database.
-I believe this was mentioned in my 0.1.8.1 README, but I wanted three states: pending, accepting, canceling.
+10/05/2024
 
-**Pending** is the default setting, once an offer is created and sent to a player it is in the **pending** status. A **pending** status offer can be _accepted_ or _canceled_.
+Quick spontaneous session - 0.1.9!
 
-**Accepting** is a conditional status, an offer is only set to **accepting** after the command is run and while the inventory window of the offer is still open. Once the window closes it returns to **pending**
+I decided I wanted to go in and add some polish and pizazz. I thought it might be neat to allow the execution of commands by clicking on the text sent to players during offer transactions.
 
-**Canceling** is a final version of a offer status, if the user who sent the offer runs this command, their offer is set to **canceling** and will be so until it resolves and deletes. Once canceled the offer cannot be accepted by the player, even if the offer still exists
+For example, you get an offer and the plugin tells you that you can accept the offer by typing in /acceptoffer playername, but now that "/acceptoffer playername" is hoverable to show you a simplified summary of item contents, and is also clickable to immediately run the command.
 
-So basically this whole setup added the new column to the database, and we have a few new methods to get the status, set a status, 
-as well as an additional method to reset ANY accepting offer statuses to pending again. 
-reset is meant to be run at the start of the server/plugin initialization. 
-I want to make sure any offers that didn't get to close (player crash/disconnect, or the server shut off), which would make the offer status not change back to pending, would be resolved and fixed on a server restart
+It's still a little jank thanks to Minecraft and character limits, 
+there is some odd spacing right now so the message puts the "playername" part of the clickable text as a new line and with a space behind it. 
+I could circumvent this by adding this entire portion of the message AFTER the previous part and make it a new line but eh. 
+For now I was content with just this basic premise working.
 
-For accepting an offer, during the onCommand part of the command is when it would set the offer to be **accepting**, 
-and in the listener would be when it resets to **pending**. And canceling, 
-same as accept when the command is run the offer status is set to **canceling**, but is NOT undone and reset to pending inside the listener.
+Oh I nearly forgot to mention. Bit of a change, I renamed DataManager to be OfferManager, as well as created a new class in the data folder for InventoryManager, 
+which currently houses the methods to serialize/deserialize inventory. I plan to eventually migrate some methods out of the previously called DataManager to make things more organized
 
-Overall this dev session worked well, I feel like things are getting a lot easier now that I know a bit more of what I am doing. The foundation is set, not much else to do but continue refining the plugin.
-But as it currently sits it works beautifully and I couldn't be happier.
+This was meant to be a smaller little dev session, and I am happy with the results. 
+so most of 0.1.9 development will be focusing on polishing up the messages sent to players and improving the overall feel of the plugin.

@@ -1,29 +1,31 @@
 package org.invoffer.invoffer.data;
 
+import net.md_5.bungee.api.chat.*;
+import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 //import org.bukkit.Material;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.util.io.BukkitObjectInputStream;
-import org.bukkit.util.io.BukkitObjectOutputStream;
 
+import java.awt.*;
 import java.io.*;
 
 import java.sql.*;
 import java.util.*;
+import java.util.List;
 import java.util.logging.Level;
 
-public class DataManager {
+public class OfferManager {
 
     private static final String DATABASE_URL = "jdbc:sqlite:plugins/InvOffer/invoffer.db";
     private static final String ACCEPT_TITLE = ChatColor.GOLD + "InvOffer GUI: Accept";
     private static final String CANCEL_TITLE = ChatColor.GOLD + "InvOffer GUI: Cancel";
+    private final InventoryManager inventoryManager = new InventoryManager();
     private Connection connection;
 
 
-    public DataManager() {
+    public OfferManager() {
         try {
             connect();
             initializeDatabase();
@@ -72,15 +74,6 @@ public class DataManager {
         }
     }
 
-//    private boolean isInventoryEmpty(Inventory inventory) {
-//        for (ItemStack itemStack : inventory.getContents()) {
-//            if (itemStack != null && !itemStack.getType().equals(Material.AIR)) {
-//                return false;
-//            }
-//        }
-//        return true;
-//    }
-
     public boolean hasActiveOffer(UUID senderUUID, UUID targetUUID) {
         String query = "SELECT COUNT(*) FROM offers WHERE sender_uuid = ? AND target_uuid = ?";
         try (PreparedStatement statement = connection.prepareStatement(query)) {
@@ -103,7 +96,7 @@ public class DataManager {
         try (PreparedStatement statement = connection.prepareStatement(insertSQL)) {
             statement.setString(1, senderUUID.toString());
             statement.setString(2, targetUUID.toString());
-            statement.setString(3, serializeInventory(offerInventory)); // Converts inventory data to string
+            statement.setString(3, inventoryManager.serializeInventory(offerInventory)); // Converts inventory data to string
             statement.executeUpdate();
         } catch (SQLException e) {
             Bukkit.getLogger().log(Level.SEVERE, "SQL Exception occurred while saving pending offer", e);
@@ -113,7 +106,7 @@ public class DataManager {
     public void updatePendingOffer(UUID senderUUID, UUID targetUUID, Inventory offerInventory) {
         String updateSQL = "UPDATE offers SET offer_inventory = ? WHERE sender_uuid = ? AND target_uuid = ?";
         try (PreparedStatement statement = connection.prepareStatement(updateSQL)) {
-            statement.setString(1, serializeInventory(offerInventory));
+            statement.setString(1, inventoryManager.serializeInventory(offerInventory));
             statement.setString(2, senderUUID.toString());
             statement.setString(3, targetUUID.toString());
             statement.executeUpdate();
@@ -139,8 +132,23 @@ public class DataManager {
         if (targetPlayer != null && targetPlayer.isOnline()) {
             String senderName = Bukkit.getOfflinePlayer(senderUUID).getName();
             if (senderName != null) {
-                targetPlayer.sendMessage(ChatColor.YELLOW + "You have received an InvOffer from " + ChatColor.WHITE + senderName + ChatColor.YELLOW + ".");
-                targetPlayer.sendMessage(ChatColor.YELLOW + "You can accept this offer by typing " + ChatColor.WHITE + "/acceptoffer " + senderName + ChatColor.YELLOW + ".");
+                // Get the summarized inventory contents
+                String inventorySummary = inventoryManager.getInventoryContentsSummary(offerInventory);
+                // Create the initial message
+                TextComponent message = new TextComponent(ChatColor.YELLOW + "You have received an InvOffer from " + ChatColor.WHITE + senderName + ChatColor.YELLOW + ".\n" +
+                        "You can accept this offer by typing or clicking: ");
+                // Create the clickable command text
+                TextComponent clickableText = new TextComponent(ChatColor.GREEN + "/acceptoffer " + senderName);
+                // Set the click event for the clickable text
+                clickableText.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/acceptoffer " + senderName));
+                // Append the clickable text to the message
+                message.addExtra(clickableText);
+                // Add hover event to show the inventory summary
+                BaseComponent[] hoverText = new ComponentBuilder(inventorySummary).create();
+                clickableText.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, hoverText));
+
+                // Send the message to the target player
+                targetPlayer.spigot().sendMessage(message);
             }
         } else {
             // Notify the sender that the target player is offline
@@ -162,7 +170,7 @@ public class DataManager {
                 String serializedInventory = resultSet.getString("offer_inventory");
 
                 // Create a new inventory with the fixed size of 9
-                Inventory inventory = deserializeInventory(serializedInventory, ACCEPT_TITLE);
+                Inventory inventory = inventoryManager.deserializeInventory(serializedInventory, ACCEPT_TITLE);
 
                 if (inventory != null) { // Check if inventory is not null
                     Player player = Bukkit.getPlayer(playerUUID);
@@ -190,7 +198,7 @@ public class DataManager {
             if (resultSet.next()) {
                 String serializedInventory = resultSet.getString("offer_inventory");
 
-                Inventory inventory = deserializeInventory(serializedInventory, CANCEL_TITLE);
+                Inventory inventory = inventoryManager.deserializeInventory(serializedInventory, CANCEL_TITLE);
 
                 if (inventory != null) {
                     Player player = Bukkit.getPlayer(senderUUID);
@@ -252,36 +260,6 @@ public class DataManager {
             Bukkit.getLogger().info(rowsUpdated + "Offers have been reset from 'accepting' to 'pending'.");
         } catch (SQLException e) {
             Bukkit.getLogger().log(Level.SEVERE, "SQL Exception occurred while resetting accepting offers to pending.");
-        }
-    }
-
-
-    public String serializeInventory(Inventory inventory) {
-        try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
-             BukkitObjectOutputStream oos = new BukkitObjectOutputStream(baos)) {
-            // Write the inventory contents to the output stream
-            oos.writeObject(inventory.getContents());
-            // Convert the byte array to a Base64-encoding string
-            return Base64.getEncoder().encodeToString(baos.toByteArray());
-        } catch (IOException e) {
-            Bukkit.getLogger().log(Level.SEVERE, "Failed to serialize inventory", e);
-            return null;
-        }
-    }
-
-    public Inventory deserializeInventory(String base64, String title) {
-        final int INVENTORY_SIZE = 9; // Fixed size for offer inventories
-        try (ByteArrayInputStream bais = new ByteArrayInputStream(Base64.getDecoder().decode(base64));
-             BukkitObjectInputStream ois = new BukkitObjectInputStream(bais)) {
-            // Read the serialized inventory data from the input stream
-            ItemStack[] contents = (ItemStack[]) ois.readObject();
-            // Create a new inventory and set its contents, by adding the inventory data from the database to this window.
-            Inventory inventory = Bukkit.createInventory(null, INVENTORY_SIZE, title); // Fixed size
-            inventory.setContents(contents);
-            return inventory;
-        } catch (IOException | ClassNotFoundException e) {
-            Bukkit.getLogger().log(Level.SEVERE, "Failed to deserialize inventory", e);
-            return null;
         }
     }
 

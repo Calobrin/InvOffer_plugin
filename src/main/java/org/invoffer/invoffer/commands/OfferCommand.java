@@ -7,7 +7,7 @@ import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
-import org.invoffer.invoffer.data.DataManager;
+import org.invoffer.invoffer.data.OfferManager;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -16,11 +16,11 @@ import java.util.UUID;
 
 public class OfferCommand implements CommandExecutor {
 
-    private final DataManager dataManager;
+    private final OfferManager offerManager;
     private final Map<UUID, UUID> playerTargets = new HashMap<>();
 
-    public OfferCommand(DataManager dataManager) {
-        this.dataManager = dataManager;
+    public OfferCommand(OfferManager offerManager) {
+        this.offerManager = offerManager;
     }
 
     public void setTargetUUID(Player player, UUID targetUUID) {
@@ -55,7 +55,7 @@ public class OfferCommand implements CommandExecutor {
                     player.sendMessage(ChatColor.YELLOW + "Usage: /invoffer <player>.");
                 } else {
                     // Checks if you already have an active offer to player.
-                    if (dataManager.hasActiveOffer(player.getUniqueId(), target.getUniqueId())) {
+                    if (offerManager.hasActiveOffer(player.getUniqueId(), target.getUniqueId())) {
                         player.sendMessage(ChatColor.RED + "You already have an active offer to " + ChatColor.WHITE + target.getName() + ChatColor.RED+ "." );
                         player.sendMessage(ChatColor.YELLOW + "You may only have one active offer for one player each.");
                         return true;

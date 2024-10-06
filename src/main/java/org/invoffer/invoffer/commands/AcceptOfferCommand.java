@@ -6,7 +6,7 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.invoffer.invoffer.data.DataManager;
+import org.invoffer.invoffer.data.OfferManager;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -14,11 +14,11 @@ import java.util.UUID;
 
 public class AcceptOfferCommand implements CommandExecutor {
 
-    private final DataManager dataManager;
+    private final OfferManager offerManager;
     private final Map<UUID, UUID> playerOffers = new HashMap<>();
 
-    public AcceptOfferCommand(DataManager dataManager) {
-        this.dataManager = dataManager;
+    public AcceptOfferCommand(OfferManager offerManager) {
+        this.offerManager = offerManager;
     }
     public void setSenderUUID(Player player, UUID senderUUID) {
         playerOffers.put(player.getUniqueId(), senderUUID);
@@ -48,7 +48,7 @@ public class AcceptOfferCommand implements CommandExecutor {
         String senderName = args[0];
         UUID senderUUID = Bukkit.getOfflinePlayer(senderName).getUniqueId();
 
-        if (senderUUID == null || !dataManager.hasActiveOffer(senderUUID, player.getUniqueId())) {
+        if (senderUUID == null || !offerManager.hasActiveOffer(senderUUID, player.getUniqueId())) {
             player.sendMessage(ChatColor.RED + "Player '" + senderName + "' not found or you do not have an active offer from them.");
             return true;
         }
@@ -59,7 +59,7 @@ public class AcceptOfferCommand implements CommandExecutor {
             return true;
         }
         // Check the status of an offer - you cannot accept an offer that has been canceled.
-        String currentStatus = dataManager.getOfferStatus(senderUUID, player.getUniqueId());
+        String currentStatus = offerManager.getOfferStatus(senderUUID, player.getUniqueId());
 
         if (currentStatus == null) {
             player.sendMessage(ChatColor.RED + "An error occurred while checking the offer status for accepting an offer");
@@ -74,8 +74,8 @@ public class AcceptOfferCommand implements CommandExecutor {
         setSenderUUID(player, senderUUID);
 
         // Proceed with accepting the offer
-        dataManager.updateOfferStatus(senderUUID,player.getUniqueId(), "accepting");
-        dataManager.acceptOffer(player.getUniqueId(), senderUUID);
+        offerManager.updateOfferStatus(senderUUID,player.getUniqueId(), "accepting");
+        offerManager.acceptOffer(player.getUniqueId(), senderUUID);
         return true;
     }
 

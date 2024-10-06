@@ -10,18 +10,18 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.invoffer.invoffer.commands.AcceptOfferCommand;
 import org.invoffer.invoffer.commands.CancelOfferCommand;
-import org.invoffer.invoffer.data.DataManager;
+import org.invoffer.invoffer.data.OfferManager;
 
 import java.util.UUID;
 
 public class OfferAcceptAndCancelInventoryCloseListener implements Listener {
 
-    private final DataManager dataManager;
+    private final OfferManager offerManager;
     private final AcceptOfferCommand acceptOfferCommand;
     private final CancelOfferCommand cancelOfferCommand;
 
-    public OfferAcceptAndCancelInventoryCloseListener(DataManager dataManager, AcceptOfferCommand acceptOfferCommand, CancelOfferCommand cancelOfferCommand) {
-        this.dataManager = dataManager;
+    public OfferAcceptAndCancelInventoryCloseListener(OfferManager offerManager, AcceptOfferCommand acceptOfferCommand, CancelOfferCommand cancelOfferCommand) {
+        this.offerManager = offerManager;
         this.acceptOfferCommand = acceptOfferCommand;
         this.cancelOfferCommand = cancelOfferCommand;
     }
@@ -55,17 +55,17 @@ public class OfferAcceptAndCancelInventoryCloseListener implements Listener {
 
         if (isInventoryEmpty(offerInventory)) {
             // If the inventory is empty, delete/resolve the offer
-            dataManager.resolvePendingOffer(senderUUID, targetUUID);
+            offerManager.resolvePendingOffer(senderUUID, targetUUID);
             player.sendMessage(ChatColor.GREEN + "You have fully accepted the offer.");
             if (senderPlayer != null && senderPlayer.isOnline()) {
                 senderPlayer.sendMessage(ChatColor.GREEN + "Your offer to " + ChatColor.WHITE + player.getName() + ChatColor.GREEN + " has been fully accepted.");
             }
         } else {
             // If the inventory is NOT empty, update the offer with the remaining items
-            dataManager.updatePendingOffer(senderUUID, targetUUID, offerInventory);
-            dataManager.updateOfferStatus(senderUUID, targetUUID, "pending");
+            offerManager.updatePendingOffer(senderUUID, targetUUID, offerInventory);
+            offerManager.updateOfferStatus(senderUUID, targetUUID, "pending");
             if (senderPlayer != null && senderPlayer.isOnline()) {
-                senderPlayer.sendMessage(ChatColor.YELLOW + "Your offer to " + ChatColor.WHITE + player.getName() + ChatColor.YELLOW + " was partially accepted.");
+                senderPlayer.sendMessage(ChatColor.YELLOW + "Your offer to " + ChatColor.WHITE + player.getName() + ChatColor.YELLOW + " was viewed or partially accepted.");
             }
             player.sendMessage(ChatColor.YELLOW + "There were still items remaining to accept.");
             player.sendMessage(ChatColor.YELLOW + "You can claim them by resending that command again.");
@@ -81,18 +81,19 @@ public class OfferAcceptAndCancelInventoryCloseListener implements Listener {
 
         if (isInventoryEmpty(offerInventory)) {
             //If the inventory is empty, fully cancel the offer
-            dataManager.resolvePendingOffer(senderUUID,targetUUID);
+            offerManager.resolvePendingOffer(senderUUID,targetUUID);
             player.sendMessage(ChatColor.GREEN + "You have fully canceled the offer.");
             if (senderPlayer != null && senderPlayer.isOnline()) {
-                senderPlayer.sendMessage(ChatColor.YELLOW + "Your pending offer from " + ChatColor.WHITE + player.getName() + ChatColor.YELLOW + " has been canceled.");
+                senderPlayer.sendMessage(ChatColor.YELLOW + "Your pending offer from " + ChatColor.WHITE + player.getName() + ChatColor.YELLOW + " has been fully canceled.");
             }
         } else {
             // Handle the remaining items for canceling
-            dataManager.updatePendingOffer(senderUUID, targetUUID, offerInventory);
+            offerManager.updatePendingOffer(senderUUID, targetUUID, offerInventory);
+            player.sendMessage(ChatColor.YELLOW + "There were still items remaining to reclaim and cancel.");
+            player.sendMessage(ChatColor.YELLOW + "You can claim them by resending that command again.");
             if (senderPlayer != null && senderPlayer.isOnline())
-                senderPlayer.sendMessage(ChatColor.YELLOW + "Your pending offer from " + ChatColor.WHITE + player.getName() + ChatColor.YELLOW + " has been canceled.");
+                senderPlayer.sendMessage(ChatColor.YELLOW + "Your pending offer from " + ChatColor.WHITE + player.getName() + ChatColor.YELLOW + " has begun cancellation and is no longer acceptable.");
         }
-        player.sendMessage(ChatColor.YELLOW + "There were still items remaining to reclaim and cancel.");
-        player.sendMessage(ChatColor.YELLOW + "You can claim them by resending that command again.");
+
     }
 }

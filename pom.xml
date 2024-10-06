@@ -6,7 +6,7 @@
 
   <groupId>org.invoffer</groupId>
   <artifactId>InvOffer</artifactId>
-  <version>0.1.8.2-Development-SNAPSHOT</version>
+  <version>0.1.9-Development-SNAPSHOT</version>
   <packaging>jar</packaging>
 
   <name>InvOffer</name>

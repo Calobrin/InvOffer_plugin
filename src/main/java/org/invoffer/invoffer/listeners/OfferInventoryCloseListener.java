@@ -9,18 +9,18 @@ import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.invoffer.invoffer.commands.OfferCommand;
-import org.invoffer.invoffer.data.DataManager;
+import org.invoffer.invoffer.data.OfferManager;
 
 import java.util.UUID;
 
 
 public class OfferInventoryCloseListener implements Listener {
 
-    private final DataManager dataManager;
+    private final OfferManager offerManager;
     private final OfferCommand offerCommand;
 
-    public OfferInventoryCloseListener(DataManager dataManager, OfferCommand offerCommand) {
-        this.dataManager = dataManager;
+    public OfferInventoryCloseListener(OfferManager offerManager, OfferCommand offerCommand) {
+        this.offerManager = offerManager;
         this.offerCommand = offerCommand;
     }
 
@@ -50,9 +50,9 @@ public class OfferInventoryCloseListener implements Listener {
                         return;
                     }
                     Player targetPlayer = Bukkit.getPlayer(targetUUID);
-                    dataManager.processPendingOffer(senderUUID, targetUUID, offerInventory);
+                    offerManager.processPendingOffer(senderUUID, targetUUID, offerInventory);
                     // After processing the offer, it saves the offer (conditions for correct offer sending done by process method)
-                    dataManager.savePendingOffer(senderUUID, targetUUID, offerInventory);
+                    offerManager.savePendingOffer(senderUUID, targetUUID, offerInventory);
                     if (targetPlayer != null) {
                         // Sending confirmation that the offer was sent
                         player.sendMessage(ChatColor.GREEN + "Your offer to " + ChatColor.WHITE + targetPlayer.getName() + ChatColor.GREEN + " has been sent.");
